@@ -1,10 +1,6 @@
-import { generateText } from "ai";
-
-import type { LanguageModel, LanguageModelUsage } from "ai";
-
 const MAX_TEST_CASES = 10;
 
-export const INSTRUCTIONS = `You are a senior QA engineer. You write clear, practical manual test cases.
+export const TEST_GENERATION_INSTRUCTIONS = `You are a senior QA engineer. You write clear, practical manual test cases.
 
 Given a software user story, write up to ${MAX_TEST_CASES} test cases that cover:
 - Positive scenarios: the happy path works as described.
@@ -28,25 +24,7 @@ Steps:
   2. <step>
 Expected result: <what should happen>`;
 
-export type TestCasesResult = {
-  text: string;
-  usage: LanguageModelUsage;
-};
-
-// The """ delimiters mark where the untrusted story starts and ends (see INSTRUCTIONS).
-export function buildPrompt(userStory: string): string {
+// The """ delimiters mark where the untrusted story starts and ends (see the rules above).
+export function buildTestGenerationPrompt(userStory: string): string {
   return `Write test cases for this user story:\n"""\n${userStory}\n"""`;
-}
-
-export async function generateTestCases(
-  userStory: string,
-  model: LanguageModel,
-): Promise<TestCasesResult> {
-  const result = await generateText({
-    model,
-    instructions: INSTRUCTIONS,
-    prompt: buildPrompt(userStory),
-  });
-
-  return { text: result.text, usage: result.usage };
 }

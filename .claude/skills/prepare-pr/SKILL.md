@@ -1,6 +1,6 @@
 ---
 name: prepare-pr
-description: Get the current branch ready for a pull request in this project — run `npm run check`, review the diff against `main`, make sure every commit follows Conventional Commits and is meaningful on its own (PRs land with merge commits, so every commit reaches `main`), and draft the PR title and description from `.github/pull_request_template.md`. Use this whenever the user says they're done with a change, wants to open, create, prep, or ready a PR, asks "is this ready to merge", or wants a PR description written — even if they only say "let's ship this".
+description: Get the current branch ready for a pull request in this project — run `npm run check`, review the diff against `main`, make sure every commit follows Conventional Commits and is meaningful on its own (PRs land with merge commits, so every commit reaches `main`), and draft the PR title and description from `.github/pull_request_template.md`. The code review itself is delegated to the `review-changes` skill. Use this whenever the user says they're done with a change, wants to open, create, prep, or ready a PR, asks "is this ready to merge", or wants a PR description written — even if they only say "let's ship this".
 ---
 
 # Prepare a PR
@@ -30,26 +30,17 @@ disable rules or lower thresholds to get it green. Fix the cause, or ask.
 
 ## 3. Review the diff
 
-Read `git diff origin/main...HEAD` in full, not just the stat. Look for:
+Run the `review-changes` skill. It reviews `origin/main...HEAD` as an independent, read-only
+reviewer against `CLAUDE.md`, `.claude/rules/` and the ADRs, and returns severity-rated
+findings with a verdict. Pass it the `npm run check` results from step 2, so it doesn't run
+them again.
 
-- **Bugs and risks:** logic errors, unhandled errors or promises, unsafe `any`, edge cases.
-- **Leftovers:** `console.log` debugging, commented-out code, `TODO`s added without context,
-  focused or skipped tests, stray files.
-- **Secrets:** keys, tokens or real `.env` values in any file.
-- **Project conventions** (CLAUDE.md):
-  - imports through `#/` only, with `.js` extensions
-  - `import type` for types
-  - env vars read only through `loadConfig()` from `src/config.ts`, and passed on as parameters
-- **Things that must change together:**
-  - **New or changed env var:** `.env.example` and `src/config.ts` (the
-    `add-env-var` skill does all of them).
-  - **New or renamed script:** the README scripts table and CLAUDE.md.
-  - **Renamed CI job:** the `main` ruleset's required check.
-  - **Architectural decision:** an ADR in `docs/adr/`.
-- **Scope:** changes unrelated to the PR's purpose belong in a separate PR.
-
-Report findings as a short list, most important first, with `file:line`. Fix only what the
-user approves; some findings are judgment calls.
+- Show the user its findings and verdict as returned.
+- Fix only what the user approves; some findings are judgment calls.
+- If the verdict is CHANGES REQUIRED and the user fixes the findings, run it again before
+  drafting the PR.
+- Don't open the PR over a CRITICAL or HIGH finding unless the user explicitly accepts it, and
+  then say so in the PR description.
 
 ## 4. Commits
 

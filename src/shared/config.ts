@@ -8,6 +8,8 @@ function createEnvSchema() {
     APP_NAME: z.string().min(1),
     GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1),
     GEMINI_MODEL: z.string().min(1).default("gemini-3.5-flash"),
+    PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+    HOST: z.string().min(1).default("127.0.0.1"),
   });
 }
 
