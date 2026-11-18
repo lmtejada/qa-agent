@@ -4,6 +4,8 @@ import { createTypeScriptImportResolver } from "eslint-import-resolver-typescrip
 import { importX } from "eslint-plugin-import-x";
 import { configs as tseslint } from "typescript-eslint";
 
+import type { Linter } from "eslint";
+
 // Architecture layers (see CLAUDE.md "Architecture"). Dependencies point inwards:
 // interfaces -> workflows -> capabilities -> foundation. Folders may not exist yet.
 const INTERFACES = ["./src/cli", "./src/server"];
@@ -74,6 +76,58 @@ const MODULE_STRUCTURE_RULES = [
   NO_TOP_LEVEL_CONTROL_FLOW,
 ];
 
+// `exec` runs its argument through a shell, so interpolated input becomes command injection.
+const UNSAFE_SHELL_IMPORTS = ["node:child_process", "child_process"].map((name) => ({
+  name,
+  importNames: ["exec", "execSync"],
+  message:
+    "`exec` runs a shell. Use `execFile`/`spawn` with an argument array (see CLAUDE.md Security).",
+}));
+
+// Packages that belong to one layer (see CLAUDE.md "Architecture").
+const PROVIDER_PACKAGES = {
+  group: ["@ai-sdk/*"],
+  message: "Only src/ai/<provider>-client.ts files may import an AI provider package.",
+};
+const AI_SDK_RUNTIME = {
+  name: "ai",
+  allowTypeImports: true,
+  message: 'Model calls live in src/ai/. Other code may only `import type` from "ai".',
+};
+const FRAMEWORK_PACKAGES = {
+  group: ["fastify", "@fastify/*"],
+  message: "HTTP framework code belongs in src/server/.",
+};
+const HTTP_MODULES = ["node:http", "http", "node:https", "https"].map((name) => ({
+  name,
+  message: "Serving HTTP belongs in src/server/ (Fastify for new endpoints).",
+}));
+
+function layerImportRule({
+  provider = false,
+  aiSdk = false,
+  server = false,
+} = {}): Linter.RuleEntry {
+  return [
+    "error",
+    {
+      paths: [...(aiSdk ? [] : [AI_SDK_RUNTIME]), ...(server ? [] : HTTP_MODULES)],
+      patterns: [...(provider ? [] : [PROVIDER_PACKAGES]), ...(server ? [] : [FRAMEWORK_PACKAGES])],
+    },
+  ];
+}
+
+const PROCESS_ENV = {
+  object: "process",
+  property: "env",
+  message: "Read env vars through loadConfig() in src/shared/config.ts.",
+};
+const PROCESS_EXIT = {
+  object: "process",
+  property: "exit",
+  message: "Return an error instead; only entry points end the process (set `process.exitCode`).",
+};
+
 export default defineConfig(
   { ignores: ["dist/", "coverage/"] },
 
@@ -111,6 +165,7 @@ export default defineConfig(
               message: "Use the `#/` alias instead of a relative path (e.g. `#/shared/config.js`).",
             },
           ],
+          paths: UNSAFE_SHELL_IMPORTS,
         },
       ],
       "import-x/order": [
@@ -134,7 +189,11 @@ export default defineConfig(
       "import-x/no-default-export": "error",
       "no-restricted-syntax": ["error", ...MODULE_STRUCTURE_RULES, NO_TOP_LEVEL_STATEMENTS],
 
+      "@typescript-eslint/no-restricted-imports": layerImportRule(),
+      "no-restricted-properties": ["error", PROCESS_ENV, PROCESS_EXIT],
+
       "@typescript-eslint/explicit-module-boundary-types": "error",
+      "@typescript-eslint/no-non-null-assertion": "error",
       "@typescript-eslint/consistent-type-definitions": ["error", "type"],
       "@typescript-eslint/switch-exhaustiveness-check": "error",
       eqeqeq: ["error", "always"],
@@ -155,11 +214,35 @@ export default defineConfig(
     rules: { "no-console": "off" },
   },
   {
+    files: ["src/server/**/*.ts"],
+    rules: { "@typescript-eslint/no-restricted-imports": layerImportRule({ server: true }) },
+  },
+  {
+    files: ["src/ai/**/*.ts"],
+    rules: { "@typescript-eslint/no-restricted-imports": layerImportRule({ aiSdk: true }) },
+  },
+  {
+    files: ["src/ai/*-client.ts"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": layerImportRule({ aiSdk: true, provider: true }),
+    },
+  },
+  {
+    files: ["src/cli/index.ts", "src/server/index.ts"],
+    rules: { "no-restricted-properties": ["error", PROCESS_ENV] },
+  },
+  {
+    files: ["src/shared/config.ts"],
+    rules: { "no-restricted-properties": ["error", PROCESS_EXIT] },
+  },
+  {
     // Test runners register tests with top-level calls (`test(...)`, `describe(...)`).
     files: ["src/**/*.test.ts"],
     rules: {
       "no-restricted-syntax": ["error", ...MODULE_STRUCTURE_RULES],
       "max-lines-per-function": "off",
+      // Tests drive any layer, including model calls through the AI SDK's mock model.
+      "@typescript-eslint/no-restricted-imports": layerImportRule({ aiSdk: true }),
       // node:test handles the promises its registration functions return.
       "@typescript-eslint/no-floating-promises": [
         "error",
