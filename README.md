@@ -177,7 +177,7 @@ fix most issues automatically. The Git hooks also check your work along the way:
 | ------------ | --------------------------------- |
 | `pre-commit` | ESLint + Prettier on staged files |
 | `commit-msg` | commitlint                        |
-| `pre-push`   | `npm run typecheck`               |
+| `pre-push`   | `npm run typecheck` + `npm test`  |
 
 When you work with Claude Code, a project hook also lints every file it edits under `src/` and
 sends the errors back, so rule violations are fixed during the task.

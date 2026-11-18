@@ -100,7 +100,7 @@ to follow the rule; don't disable or weaken the check.
 | --------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | ESLint (`eslint.config.ts`) | Claude hook on every edit, pre-commit, CI | Layers, package boundaries, module structure, size limits, exports, types, `console`, `process.env`/`exit`, `exec` |
 | `tsc` strict                | pre-push, CI                              | Types                                                                                                              |
-| `npm test`                  | CI, `npm run check`                       | Behavior                                                                                                           |
+| `npm test`                  | pre-push, CI, `npm run check`             | Behavior                                                                                                           |
 | Prettier                    | pre-commit, CI                            | Formatting                                                                                                         |
 | commitlint                  | commit-msg hook, PR title check           | Conventional Commits                                                                                               |
 
