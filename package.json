@@ -1,8 +1,8 @@
 {
-  "name": "projects-scaffold",
+  "name": "qa-agent",
   "version": "0.1.0",
   "private": true,
-  "description": "Strict, minimal TypeScript/Node.js starter: ESLint, Prettier, Husky, zod config, and hardened CI.",
+  "description": "CLI QA agent that turns user stories into test cases using Gemini",
   "license": "ISC",
   "author": "Laura Tejada",
   "type": "module",

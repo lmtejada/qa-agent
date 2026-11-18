@@ -1,10 +1,8 @@
-# projects-scaffold
+# qa-agent
 
-A GitHub **template repository** for TypeScript/Node.js projects: strict TypeScript, ESLint,
-Prettier, Git hooks, validated env config, and hardened GitHub Actions — with as few
-dependencies as possible. Use it as the starting point for any app, CLI or library.
+CLI QA agent that turns user stories into test cases using Gemini.
 
-By default it's set up as an **app that Node runs from compiled output** (`tsc` → `dist/`).
+Node runs the compiled output (`tsc` → `dist/`).
 
 ## Prerequisites
 
@@ -117,32 +115,6 @@ fix most issues automatically. The Git hooks also check your work along the way:
 Fill in the PR template, keep PRs focused on one change, and make sure CI is green. For
 significant architectural changes, add an ADR in `docs/adr/` (the `write-adr` skill writes one
 from the discussion).
-
-## After creating a repo from this template
-
-GitHub copies files, but **not** repository settings. In the new repo:
-
-1. **Update project identity:** `name`, `description` and `author` in `package.json`, the
-   title of this README, `LICENSE`, and the URLs in `.github/SECURITY.md` and
-   `.github/ISSUE_TEMPLATE/config.yml`.
-2. **Merge settings** (Settings → General → Pull Requests): allow merge commits only,
-   enable "Automatically delete head branches".
-3. **Ruleset for `main`** (Settings → Rules → Rulesets): require a pull request (allowed
-   merge method: merge), require the `Format and Type Check` status check, block force
-   pushes and deletion.
-4. **Security** (Settings → Advanced Security): enable Dependabot alerts and security
-   updates, secret scanning with push protection, and private vulnerability reporting.
-5. **Dependabot** starts using `.github/dependabot.yml` automatically, but check that its
-   PRs can run the workflows.
-
-Or do it with the `gh` CLI:
-
-```sh
-gh repo edit --enable-merge-commit --enable-squash-merge=false --enable-rebase-merge=false \
-  --delete-branch-on-merge --enable-secret-scanning --enable-secret-scanning-push-protection
-gh api -X PUT repos/{owner}/{repo}/vulnerability-alerts
-gh api -X PUT repos/{owner}/{repo}/automated-security-fixes
-```
 
 ## License
 
