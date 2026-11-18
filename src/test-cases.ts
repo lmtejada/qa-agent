@@ -1,11 +1,6 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 
-import { config } from "#/config.js";
-
-// The provider is the bridge between the AI SDK and Google's Gemini API.
-// We pass the key from our validated config instead of letting the SDK read process.env itself.
-const google = createGoogleGenerativeAI({ apiKey: config.GOOGLE_GENERATIVE_AI_API_KEY });
+import type { LanguageModel, LanguageModelUsage } from "ai";
 
 // "Instructions" (also called the system prompt) tell the model WHO it is and HOW to answer.
 // They stay the same on every run; only the user story changes.
@@ -33,20 +28,39 @@ Steps:
   2. <step>
 Expected result: <what should happen>`;
 
-export async function generateTestCases(userStory: string): Promise<string> {
+export type TestCasesResult = {
+  /** The generated test cases, as plain text. */
+  text: string;
+  /** Token counts for this call (they drive cost). */
+  usage: LanguageModelUsage;
+};
+
+/**
+ * Builds the user message sent to the model.
+ * Delimiters (""") make it clear where the story starts and ends.
+ */
+export function buildPrompt(userStory: string): string {
+  return `Write test cases for this user story:\n"""\n${userStory}\n"""`;
+}
+
+/**
+ * Asks the model for test cases that cover the given user story.
+ *
+ * The model is a parameter (dependency injection): the caller decides which provider and model
+ * to use, and tests can pass a fake model instead of calling a real API.
+ * This function doesn't print anything; it returns the result for the caller to display.
+ */
+export async function generateTestCases(
+  userStory: string,
+  model: LanguageModel,
+): Promise<TestCasesResult> {
   // generateText sends ONE request to the model and waits for the full answer.
-  // The SDK turns `instructions` + `prompt` into the message format Gemini's API expects.
+  // The SDK turns `instructions` + `prompt` into the message format the provider's API expects.
   const result = await generateText({
-    model: google(config.GEMINI_MODEL),
+    model,
     instructions: INSTRUCTIONS,
-    // Delimiters (""") make it clear where the story starts and ends.
-    prompt: `Write test cases for this user story:\n"""\n${userStory}\n"""`,
+    prompt: buildPrompt(userStory),
   });
 
-  // Tokens are the units the model reads and writes (roughly ¾ of a word). They drive cost.
-  const { inputTokens, outputTokens } = result.usage;
-  console.log(`(tokens: ${inputTokens ?? "?"} in, ${outputTokens ?? "?"} out)\n`);
-
-  // result.text is the model's answer as a single string.
-  return result.text;
+  return { text: result.text, usage: result.usage };
 }

@@ -59,8 +59,9 @@ startup by [`src/config.ts`](src/config.ts).
 ├── docs/adr/                # Architecture decision records (start from `0. template.md`)
 ├── src/
 │   ├── config.ts            # Loads and validates env vars (zod), exports `config`
-│   ├── index.ts             # Entry point: reads the user story, prints the test cases
-│   └── test-cases.ts        # Prompt + Gemini call (AI SDK `generateText`)
+│   ├── index.ts             # Entry point: wires config, model and terminal together
+│   ├── test-cases.ts        # Prompt + model call (AI SDK `generateText`), no I/O
+│   └── user-input.ts        # Reads a multi-line user story from a stream
 ├── .env.example             # Every env variable, documented
 ├── eslint.config.ts
 ├── tsconfig.json            # Type-checking (editor, ESLint, `typecheck`)
@@ -78,6 +79,10 @@ startup by [`src/config.ts`](src/config.ts).
   `package.json` — no build-time rewriting. A custom `template-source` condition points TypeScript,
   ESLint and tsx at `src/`; plain `node` resolves the same import to `dist/`. (`@/` isn't
   possible natively: Node requires subpath imports to start with `#`.)
+- **Modules export, only the entry point runs:** files in `src/` export functions and have no
+  side effects on import, except `src/index.ts` (and `src/config.ts`, which validates env vars
+  at startup by design). Logic receives its dependencies (the model, streams) as parameters and
+  returns results instead of printing them.
 - **Config:** read env vars only through `config` from `src/config.ts`. Add new variables with
   the `add-env-var` skill, which updates the zod schema and `.env.example`. `.env` is loaded with Node's built-in
   `process.loadEnvFile()` — no dotenv.

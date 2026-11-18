@@ -1,43 +1,40 @@
+// Entry point: the only file that runs code on load. It wires the pieces together
+// (config, model, terminal) and handles everything the user sees.
 import { stdin, stdout } from "node:process";
-import { createInterface } from "node:readline/promises";
+
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
 import { config } from "#/config.js";
 import { generateTestCases } from "#/test-cases.js";
+import { readUserStory } from "#/user-input.js";
 
-// Reads a (possibly multi-line) user story from the terminal.
-// The story ends at the first empty line, or when the user presses Ctrl+D.
-async function readUserStory(): Promise<string> {
-  const rl = createInterface({ input: stdin, output: stdout });
+async function main(): Promise<void> {
+  // The provider is the bridge between the AI SDK and Google's Gemini API.
+  const google = createGoogleGenerativeAI({ apiKey: config.GOOGLE_GENERATIVE_AI_API_KEY });
+  const model = google(config.GEMINI_MODEL);
+
+  console.log(`${config.APP_NAME} (model: ${config.GEMINI_MODEL})\n`);
   console.log("Enter a user story. Press Enter on an empty line to finish:\n");
 
-  const lines: string[] = [];
-  for await (const line of rl) {
-    if (line.trim() === "") {
-      if (lines.length > 0) break;
-      continue; // ignore empty lines before the story starts
-    }
-    lines.push(line);
+  const userStory = await readUserStory(stdin, stdout);
+  if (userStory === "") {
+    console.error("No user story entered. Nothing to do.");
+    process.exitCode = 1;
+    return;
   }
-  rl.close();
 
-  return lines.join("\n").trim();
+  console.log("\nGenerating test cases...");
+  const { text, usage } = await generateTestCases(userStory, model);
+
+  // Tokens are the units the model reads and writes (roughly ¾ of a word). They drive cost.
+  console.log(`(tokens: ${usage.inputTokens ?? "?"} in, ${usage.outputTokens ?? "?"} out)\n`);
+  console.log(text);
 }
-
-console.log(`${config.APP_NAME} (model: ${config.GEMINI_MODEL})\n`);
-
-const userStory = await readUserStory();
-if (userStory === "") {
-  console.error("No user story entered. Nothing to do.");
-  process.exit(1);
-}
-
-console.log("\nGenerating test cases...");
 
 try {
-  const testCases = await generateTestCases(userStory);
-  console.log(testCases);
+  await main();
 } catch (error) {
   // Network problems, an invalid API key or an unknown model name all end up here.
   console.error("Failed to generate test cases:", error instanceof Error ? error.message : error);
-  process.exit(1);
+  process.exitCode = 1;
 }

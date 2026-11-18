@@ -6,6 +6,8 @@ Guidance for Claude (and other AI assistants) working in this repository.
 
 CLI QA agent: reads a user story from the terminal and asks Gemini (Vercel AI SDK, `ai` +
 `@ai-sdk/google`) for test cases. The prompt and model call live in `src/test-cases.ts`.
+Only `src/index.ts` runs code on load and does I/O; other modules export functions that take
+their dependencies (model, streams) as parameters and return results.
 
 TypeScript/Node.js project. Node runs the compiled output: `src/` → `tsc` → `dist/`.
 Node version is pinned in `.nvmrc` (24 LTS) and enforced via `engines` + `engine-strict`.
