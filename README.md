@@ -42,7 +42,7 @@ Get a free API key at [Google AI Studio](https://aistudio.google.com/apikey).
 ## Environment variables
 
 Every variable is listed and explained in [`.env.example`](.env.example), and validated at
-startup by [`src/config.ts`](src/config.ts).
+startup by `loadConfig()` in [`src/config.ts`](src/config.ts).
 
 ## Folder structure
 
@@ -58,9 +58,11 @@ startup by [`src/config.ts`](src/config.ts).
 ├── .husky/                  # pre-commit, commit-msg, pre-push hooks
 ├── docs/adr/                # Architecture decision records (start from `0. template.md`)
 ├── src/
-│   ├── config.ts            # Loads and validates env vars (zod), exports `config`
-│   ├── index.ts             # Entry point: reads the user story, prints the test cases
-│   └── test-cases.ts        # Prompt + Gemini call (AI SDK `generateText`)
+│   ├── config.ts            # loadConfig(): loads and validates env vars (zod)
+│   ├── index.ts             # Entry point: wires config, model and terminal together
+│   ├── model.ts             # createModel(config): the Gemini model
+│   ├── test-cases.ts        # Prompt + model call (AI SDK `generateText`), no I/O
+│   └── user-input.ts        # Reads a multi-line user story from a stream
 ├── .env.example             # Every env variable, documented
 ├── eslint.config.ts
 ├── tsconfig.json            # Type-checking (editor, ESLint, `typecheck`)
@@ -73,12 +75,16 @@ startup by [`src/config.ts`](src/config.ts).
   extensions (`#/config.js` for `config.ts`), as Node requires for compiled ESM.
 - **No relative imports:** import project files through the `#/` alias only. ESLint
   (`no-restricted-imports`) rejects `./` and `../` paths.
-- **Path alias:** `#/*` maps to `src/*` (e.g. `import { config } from "#/config.js"`), using
+- **Path alias:** `#/*` maps to `src/*` (e.g. `import { loadConfig } from "#/config.js"`), using
   Node's native [subpath imports](https://nodejs.org/api/packages.html#subpath-imports) in
   `package.json` — no build-time rewriting. A custom `template-source` condition points TypeScript,
   ESLint and tsx at `src/`; plain `node` resolves the same import to `dist/`. (`@/` isn't
   possible natively: Node requires subpath imports to start with `#`.)
-- **Config:** read env vars only through `config` from `src/config.ts`. Add new variables with
+- **No code in a file's body:** files export only functions or constant data, and all logic
+  lives inside functions. The one exception is `src/index.ts`, whose last line calls `main()`.
+  Functions receive their dependencies (the model, config, streams) as parameters and return
+  results instead of printing them. See `CLAUDE.md` for the full code rules.
+- **Config:** read env vars only through `loadConfig()` from `src/config.ts`. Add new variables with
   the `add-env-var` skill, which updates the zod schema and `.env.example`. `.env` is loaded with Node's built-in
   `process.loadEnvFile()` — no dotenv.
 
