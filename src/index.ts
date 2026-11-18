@@ -1,38 +1,62 @@
 import { stdin, stdout } from "node:process";
+import { createInterface } from "node:readline/promises";
 
 import { loadConfig } from "#/config.js";
+import { getErrorMessage } from "#/errors.js";
 import { createModel } from "#/model.js";
 import { generateTestCases } from "#/test-cases.js";
 import { readUserStory } from "#/user-input.js";
 
-import type { LanguageModelUsage } from "ai";
+import type { LanguageModel, LanguageModelUsage } from "ai";
+
+const EXIT_COMMAND = "exit";
 
 function formatUsage(usage: LanguageModelUsage): string {
   return `(tokens: ${usage.inputTokens ?? "?"} in, ${usage.outputTokens ?? "?"} out)`;
+}
+
+// A failed story is reported and the loop goes on, so one bad API call doesn't end the session.
+async function processStory(userStory: string, model: LanguageModel): Promise<void> {
+  console.log("\nGenerating test cases...");
+  try {
+    const { text, usage } = await generateTestCases(userStory, model);
+    console.log(`${formatUsage(usage)}\n`);
+    console.log(text);
+  } catch (error) {
+    console.error(`Failed to generate test cases: ${getErrorMessage(error)}`);
+  }
 }
 
 async function run(): Promise<void> {
   const config = loadConfig();
   const model = createModel(config);
 
-  console.log(`${config.APP_NAME} (model: ${config.GEMINI_MODEL})\n`);
-  console.log("Enter a user story. Press Enter on an empty line to finish:\n");
+  console.log(`${config.APP_NAME} (model: ${config.GEMINI_MODEL})`);
+  console.log(`Type "${EXIT_COMMAND}" or press Ctrl+D to quit.`);
 
-  const userStory = await readUserStory(stdin, stdout);
-  if (userStory === "") throw new Error("No user story entered. Nothing to do.");
+  const rl = createInterface({ input: stdin, output: stdout });
+  const lines = rl[Symbol.asyncIterator]();
 
-  console.log("\nGenerating test cases...");
-  const { text, usage } = await generateTestCases(userStory, model);
+  try {
+    for (;;) {
+      console.log("\nEnter a user story. Press Enter on an empty line to finish:\n");
+      const userStory = await readUserStory(lines);
+      if (userStory === "" || userStory.toLowerCase() === EXIT_COMMAND) break;
 
-  console.log(`${formatUsage(usage)}\n`);
-  console.log(text);
+      await processStory(userStory, model);
+    }
+  } finally {
+    rl.close();
+  }
+
+  console.log("Bye!");
 }
 
 async function main(): Promise<void> {
   try {
     await run();
   } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+    console.error(getErrorMessage(error));
     process.exitCode = 1;
   }
 }

@@ -2,9 +2,13 @@
 
 CLI QA agent that turns user stories into test cases using Gemini.
 
-You type a user story in the terminal, and the agent sends it to Gemini (through the
-[Vercel AI SDK](https://ai-sdk.dev/)) and prints up to 10 test cases: positive, negative,
-edge-case and security scenarios.
+You give it a user story, and the agent sends it to Gemini (through the
+[Vercel AI SDK](https://ai-sdk.dev/)) and returns up to 10 test cases: positive, negative,
+edge-case and security scenarios. It runs in two modes that share the same logic:
+
+- **Terminal** (`npm start`): asks for a story, prints the test cases, and asks for the next
+  one until you type `exit` or press Ctrl+D.
+- **HTTP server** (`npm run serve`): keeps listening for requests from other apps and scripts.
 
 Node runs the compiled output (`tsc` → `dist/`).
 
@@ -25,19 +29,40 @@ npm start
 
 Get a free API key at [Google AI Studio](https://aistudio.google.com/apikey).
 
+## HTTP API
+
+Start it with `npm run build && npm run serve`. By default it listens on
+`http://127.0.0.1:3000` (set `PORT` and `HOST` in `.env`). It has no authentication, so keep
+it on `127.0.0.1` unless you're on a trusted network.
+
+```sh
+curl -X POST http://127.0.0.1:3000/test-cases \
+  -H 'content-type: application/json' \
+  -d '{"userStory": "As a user, I want to reset my password by email"}'
+```
+
+| Endpoint           | Request                                     | Responses                                                                                                                                 |
+| ------------------ | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /test-cases` | JSON `{"userStory": "..."}`, 1–10,000 chars | `200 {"testCases": "...", "usage": {"inputTokens", "outputTokens"}}`, `400` invalid body, `413` body over 100 KB, `502` model call failed |
+| `GET /health`      | —                                           | `200 {"status": "ok"}`                                                                                                                    |
+
+Ctrl+C (or `SIGTERM`) stops accepting new requests and lets running ones finish.
+
 ## Scripts
 
-| Script                 | What it does                                                   |
-| ---------------------- | -------------------------------------------------------------- |
-| `npm run dev`          | Runs `src/index.ts` with tsx and restarts on changes           |
-| `npm run build`        | Compiles `src/` to `dist/` with `tsc`                          |
-| `npm start`            | Runs the compiled app from `dist/` (run `build` first)         |
-| `npm run typecheck`    | Type-checks `src/` and the config files without emitting       |
-| `npm run lint`         | Runs ESLint (type-aware)                                       |
-| `npm run lint:fix`     | Runs ESLint and applies automatic fixes                        |
-| `npm run format`       | Formats all files with Prettier                                |
-| `npm run format:check` | Checks formatting without writing                              |
-| `npm run check`        | Runs everything CI runs: format, lint, typecheck, build, audit |
+| Script                 | What it does                                                    |
+| ---------------------- | --------------------------------------------------------------- |
+| `npm run dev`          | Runs `src/index.ts` with tsx and restarts on changes            |
+| `npm run build`        | Compiles `src/` to `dist/` with `tsc`                           |
+| `npm start`            | Runs the compiled terminal app from `dist/` (run `build` first) |
+| `npm run dev:server`   | Runs `src/server.ts` with tsx and restarts on changes           |
+| `npm run serve`        | Runs the compiled HTTP server from `dist/` (run `build` first)  |
+| `npm run typecheck`    | Type-checks `src/` and the config files without emitting        |
+| `npm run lint`         | Runs ESLint (type-aware)                                        |
+| `npm run lint:fix`     | Runs ESLint and applies automatic fixes                         |
+| `npm run format`       | Formats all files with Prettier                                 |
+| `npm run format:check` | Checks formatting without writing                               |
+| `npm run check`        | Runs everything CI runs: format, lint, typecheck, build, audit  |
 
 ## Environment variables
 
@@ -59,10 +84,13 @@ startup by `loadConfig()` in [`src/config.ts`](src/config.ts).
 ├── docs/adr/                # Architecture decision records (start from `0. template.md`)
 ├── src/
 │   ├── config.ts            # loadConfig(): loads and validates env vars (zod)
-│   ├── index.ts             # Entry point: wires config, model and terminal together
+│   ├── errors.ts            # getErrorMessage(): readable message from any thrown value
+│   ├── http-handler.ts      # createRequestHandler(model): routes, validation, JSON responses
+│   ├── index.ts             # Entry point: terminal loop
 │   ├── model.ts             # createModel(config): the Gemini model
+│   ├── server.ts            # Entry point: HTTP server
 │   ├── test-cases.ts        # Prompt + model call (AI SDK `generateText`), no I/O
-│   └── user-input.ts        # Reads a multi-line user story from a stream
+│   └── user-input.ts        # Reads the next multi-line user story from a line iterator
 ├── .env.example             # Every env variable, documented
 ├── eslint.config.ts
 ├── tsconfig.json            # Type-checking (editor, ESLint, `typecheck`)
@@ -81,7 +109,8 @@ startup by `loadConfig()` in [`src/config.ts`](src/config.ts).
   ESLint and tsx at `src/`; plain `node` resolves the same import to `dist/`. (`@/` isn't
   possible natively: Node requires subpath imports to start with `#`.)
 - **No code in a file's body:** files export only functions or constant data, and all logic
-  lives inside functions. The one exception is `src/index.ts`, whose last line calls `main()`.
+  lives inside functions. The only exceptions are the entry points, `src/index.ts` and `src/server.ts`,
+  whose last line calls `main()`.
   Functions receive their dependencies (the model, config, streams) as parameters and return
   results instead of printing them. See `CLAUDE.md` for the full code rules.
 - **Config:** read env vars only through `loadConfig()` from `src/config.ts`. Add new variables with

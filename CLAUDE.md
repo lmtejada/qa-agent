@@ -4,8 +4,10 @@ Guidance for Claude (and other AI assistants) working in this repository.
 
 ## Project
 
-CLI QA agent: reads a user story from the terminal and asks Gemini (Vercel AI SDK, `ai` +
-`@ai-sdk/google`) for test cases. The prompt and model call live in `src/test-cases.ts`.
+QA agent: takes a user story and asks Gemini (Vercel AI SDK, `ai` + `@ai-sdk/google`) for test
+cases. The prompt and model call live in `src/test-cases.ts`. Two entry points share that logic:
+`src/index.ts` (terminal loop) and `src/server.ts` (HTTP server, handler in
+`src/http-handler.ts`).
 
 TypeScript/Node.js project. Node runs the compiled output: `src/` → `tsc` → `dist/`.
 Node version is pinned in `.nvmrc` (24 LTS) and enforced via `engines` + `engine-strict`.
@@ -14,7 +16,9 @@ Node version is pinned in `.nvmrc` (24 LTS) and enforced via `engines` + `engine
 
 ```sh
 npm run dev         # run with tsx in watch mode
-npm start           # run the compiled app from dist/ (after npm run build)
+npm start           # run the compiled terminal app from dist/ (after npm run build)
+npm run serve       # run the compiled HTTP server from dist/ (after npm run build)
+npm run dev:server  # run the HTTP server with tsx in watch mode
 npm run check       # everything CI runs — must pass before you finish a task
 npm run lint:fix    # auto-fix lint issues
 npm run format      # auto-format
@@ -30,10 +34,12 @@ npm run format      # auto-format
   the source (`const MAX_TEST_CASES = 10`, `const INSTRUCTIONS = "..."`). If a value needs a
   function call to produce (reading env vars, creating a client, parsing), put it behind a
   function (`loadConfig()`, `createModel(config)`).
-- **The only exception** is the entry point `src/index.ts`, whose last line calls `main()`.
-  Nothing else runs at the top level, so importing any other file never has side effects.
-- **Separate logic from I/O.** Only `main()` (and functions it calls in `src/index.ts`) reads
-  from the terminal, prints, or sets `process.exitCode`. Other functions return values or
+- **The only exceptions** are the entry points `src/index.ts` and `src/server.ts`, whose last
+  line calls `main()`. Nothing else runs at the top level, so importing any other file never
+  has side effects.
+- **Separate logic from I/O.** Only the entry points read from the terminal, start servers,
+  listen for signals, or set `process.exitCode`. The HTTP handler writes responses and logs
+  requests, but takes the model as a parameter. Other functions return values or
   throw errors; they don't `console.log` or call `process.exit`.
 - **Pass dependencies in as parameters** (the model, config values, streams) instead of
   importing or creating them inside the function. This keeps functions testable with fakes

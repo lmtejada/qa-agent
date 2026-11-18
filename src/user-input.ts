@@ -1,22 +1,21 @@
-import { createInterface } from "node:readline/promises";
-
 /**
- * Reads a multi-line user story. It ends at the first empty line after some text, or when the
- * stream ends (Ctrl+D). Returns "" if nothing was entered.
+ * Reads the next multi-line user story from a stream of lines. The story ends at the first empty
+ * line after some text. Leading empty lines are skipped. Returns "" when the input has ended.
+ *
+ * It takes an iterator (not a stream) so it can be called repeatedly on the same input: lines
+ * that arrive while the previous story is being processed stay buffered for the next call.
  */
-export async function readUserStory(
-  input: NodeJS.ReadableStream,
-  output: NodeJS.WritableStream,
-): Promise<string> {
-  const rl = createInterface({ input, output });
+export async function readUserStory(lines: AsyncIterator<string>): Promise<string> {
+  const storyLines: string[] = [];
 
-  const lines: string[] = [];
-  for await (const line of rl) {
-    const isEmpty = line.trim() === "";
-    if (isEmpty && lines.length > 0) break;
-    if (!isEmpty) lines.push(line);
+  for (;;) {
+    const next = await lines.next();
+    if (next.done === true) break;
+
+    const isEmpty = next.value.trim() === "";
+    if (isEmpty && storyLines.length > 0) break;
+    if (!isEmpty) storyLines.push(next.value);
   }
-  rl.close();
 
-  return lines.join("\n").trim();
+  return storyLines.join("\n").trim();
 }
