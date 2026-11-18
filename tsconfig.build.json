@@ -7,5 +7,7 @@
     "outDir": "dist",
     "sourceMap": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Tests run from src/ with tsx; they are not part of the build.
+  "exclude": ["src/**/*.test.ts"]
 }

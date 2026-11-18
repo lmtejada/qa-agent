@@ -40,6 +40,10 @@ Read `git diff origin/main...HEAD` in full, not just the stat. Look for:
   - imports through `#/` only, with `.js` extensions
   - `import type` for types
   - env vars read only through `loadConfig()` from `src/shared/config.ts`, and passed on as parameters
+  - the architecture rules ESLint can't check: dependencies passed in from the entry points
+    (no clients or config created inside logic), expected failures returned as `Result`,
+    clients validating responses with zod, no business logic in route handlers
+  - tests next to new or changed code (`<file>.test.ts`), covering the error cases
 - **Things that must change together:**
   - **New or changed env var:** `.env.example` and `src/shared/config.ts` (the
     `add-env-var` skill does all of them).

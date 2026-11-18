@@ -50,19 +50,20 @@ Ctrl+C (or `SIGTERM`) stops accepting new requests and lets running ones finish.
 
 ## Scripts
 
-| Script                 | What it does                                                    |
-| ---------------------- | --------------------------------------------------------------- |
-| `npm run dev`          | Runs `src/cli/index.ts` with tsx and restarts on changes        |
-| `npm run build`        | Compiles `src/` to `dist/` with `tsc`                           |
-| `npm start`            | Runs the compiled terminal app from `dist/` (run `build` first) |
-| `npm run dev:server`   | Runs `src/server/index.ts` with tsx and restarts on changes     |
-| `npm run serve`        | Runs the compiled HTTP server from `dist/` (run `build` first)  |
-| `npm run typecheck`    | Type-checks `src/` and the config files without emitting        |
-| `npm run lint`         | Runs ESLint (type-aware)                                        |
-| `npm run lint:fix`     | Runs ESLint and applies automatic fixes                         |
-| `npm run format`       | Formats all files with Prettier                                 |
-| `npm run format:check` | Checks formatting without writing                               |
-| `npm run check`        | Runs everything CI runs: format, lint, typecheck, build, audit  |
+| Script                 | What it does                                                         |
+| ---------------------- | -------------------------------------------------------------------- |
+| `npm run dev`          | Runs `src/cli/index.ts` with tsx and restarts on changes             |
+| `npm run build`        | Compiles `src/` to `dist/` with `tsc`                                |
+| `npm start`            | Runs the compiled terminal app from `dist/` (run `build` first)      |
+| `npm run dev:server`   | Runs `src/server/index.ts` with tsx and restarts on changes          |
+| `npm run serve`        | Runs the compiled HTTP server from `dist/` (run `build` first)       |
+| `npm test`             | Runs the tests (`src/**/*.test.ts`) with Node's test runner          |
+| `npm run typecheck`    | Type-checks `src/` and the config files without emitting             |
+| `npm run lint`         | Runs ESLint (type-aware)                                             |
+| `npm run lint:fix`     | Runs ESLint and applies automatic fixes                              |
+| `npm run format`       | Formats all files with Prettier                                      |
+| `npm run format:check` | Checks formatting without writing                                    |
+| `npm run check`        | Runs everything CI runs: format, lint, typecheck, test, build, audit |
 
 ## Environment variables
 
@@ -73,7 +74,10 @@ startup by `loadConfig()` in [`src/shared/config.ts`](src/shared/config.ts).
 
 ```text
 .
-├── .claude/skills/         # Project skills: add-env-var, prepare-pr, write-adr
+├── .claude/
+│   ├── hooks/               # lint-edited-file.sh: lints each file Claude edits
+│   ├── settings.json        # Registers the hook
+│   └── skills/              # Project skills: add-env-var, prepare-pr, write-adr
 ├── .github/
 │   ├── ISSUE_TEMPLATE/      # Bug report and feature request forms
 │   ├── workflows/           # ci, pr-title, codeql
@@ -96,7 +100,8 @@ startup by `loadConfig()` in [`src/shared/config.ts`](src/shared/config.ts).
 │   │   └── index.ts         # Entry point: HTTP server
 │   └── shared/
 │       ├── config.ts        # loadConfig(): loads and validates env vars (zod)
-│       └── errors.ts        # getErrorMessage()
+│       ├── errors.ts        # getErrorMessage()
+│       └── result.ts        # Result<T>, ok(), err() for expected failures
 ├── .env.example             # Every env variable, documented
 ├── eslint.config.ts
 ├── tsconfig.json            # Type-checking (editor, ESLint, `typecheck`)
@@ -119,6 +124,11 @@ startup by `loadConfig()` in [`src/shared/config.ts`](src/shared/config.ts).
   whose last line calls `main()`.
   Functions receive their dependencies (the model, config, streams) as parameters and return
   results instead of printing them. See `CLAUDE.md` for the full code rules.
+- **Layered architecture:** interfaces (`cli/`, `server/`) → workflows → capabilities (`ai/`,
+  `integrations/`, ...) → foundation (`validation/`, `shared/`). ESLint rejects imports against
+  that direction, classes, top-level code, and oversized functions. `CLAUDE.md` describes the
+  architecture, the client pattern, dependency injection, errors and testing rules, and
+  ADR 0002 explains why.
 - **Folders by capability:** `ai/`, `cli/`, `server/`, `shared/`, and later `integrations/`,
   `validation/`, `automation/`, `reporting/`. New folders are added with the feature that needs
   them. `CLAUDE.md` describes what goes where.
@@ -167,6 +177,9 @@ fix most issues automatically. The Git hooks also check your work along the way:
 | `pre-commit` | ESLint + Prettier on staged files |
 | `commit-msg` | commitlint                        |
 | `pre-push`   | `npm run typecheck`               |
+
+When you work with Claude Code, a project hook also lints every file it edits under `src/` and
+sends the errors back, so rule violations are fixed during the task.
 
 Fill in the PR template, keep PRs focused on one change, and make sure CI is green. For
 significant architectural changes, add an ADR in `docs/adr/` (the `write-adr` skill writes one

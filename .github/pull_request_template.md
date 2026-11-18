@@ -11,5 +11,7 @@
 - [ ] PR title follows [Conventional Commits](https://www.conventionalcommits.org/) (it appears in the merge commit)
 - [ ] Commits are meaningful on their own (they all land on `main`)
 - [ ] `npm run check` passes locally
+- [ ] Tests added or updated for new or changed behavior
+- [ ] Follows the architecture in `CLAUDE.md` (layers, dependency injection, `Result` for expected failures)
 - [ ] `.env.example` and `src/shared/config.ts` updated if env variables changed
 - [ ] Docs (README / ADR) updated if behavior or architecture changed
