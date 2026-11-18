@@ -38,7 +38,7 @@ After implementing:
 2. Run the relevant unit tests (`npm test`).
 3. Run type checking (`npm run typecheck`). `npm run check` runs all of these, plus the build
    and the audit, exactly as CI does.
-4. Review the resulting diff.
+4. Review the resulting diff (the `review-changes` skill gives an independent review).
 5. Report what was changed and what was verified.
 
 Never claim tests or checks passed without running them. If a check fails or was skipped, say
@@ -356,7 +356,10 @@ both.
 In `.claude/skills/`:
 
 - `add-env-var`: add, rename or remove an env variable everywhere it must be declared.
-- `prepare-pr`: run the checks, review the diff and commits, and draft the PR description.
+- `review-changes`: independent, read-only code review of the branch against these standards,
+  with severity-rated findings and a verdict. Runs in a forked subagent.
+- `prepare-pr`: run the checks, run `review-changes`, tidy the commits, and draft the PR
+  description.
 - `write-adr`: turn a decision from the conversation into a numbered ADR in `docs/adr/`.
 
 ## Decisions

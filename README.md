@@ -78,7 +78,7 @@ startup by `loadConfig()` in [`src/shared/config.ts`](src/shared/config.ts).
 │   ├── hooks/               # lint-edited-file.sh: lints each file Claude edits
 │   ├── rules/               # Path-scoped rules: testing.md, ai-engineering.md
 │   ├── settings.json        # Registers the hook
-│   └── skills/              # Project skills: add-env-var, prepare-pr, write-adr
+│   └── skills/              # Project skills: add-env-var, prepare-pr, review-changes, write-adr
 ├── .github/
 │   ├── ISSUE_TEMPLATE/      # Bug report and feature request forms
 │   ├── workflows/           # ci, pr-title, codeql
