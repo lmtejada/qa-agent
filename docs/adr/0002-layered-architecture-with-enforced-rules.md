@@ -45,7 +45,9 @@
     points, no `exec`/`execSync`, no non-null assertions, `no-console` outside interfaces.
   - A Claude Code hook that lints each edited file.
   - `npm test` (`node:test`, co-located `*.test.ts`) in `npm run check` and CI.
-- Tier 3 has two files:
+- Tier 3 has three files:
+  - `typescript.md` for `src/**/*.ts`: module structure, imports, types and style. Most of these
+    are also enforced by ESLint and `tsc`.
   - `testing.md` for `src/**/*.test.ts`: tools, Arrange-Act-Assert, determinism, no sleeps,
     independent tests, fakes only at boundaries.
   - `ai-engineering.md` for `src/ai/**` and `src/workflows/**`: structured output, prompts,
@@ -56,10 +58,10 @@
   them.
 - We considered putting everything in `CLAUDE.md` and rejected it because it loads every rule
   into every task, including test and AI detail irrelevant to most changes.
-- We considered a `typescript.md` rules file for `src/**/*.ts` and rejected it:
-  - That path matches almost every task, so scoping saves nothing.
-  - About half its rules are already enforced by tools.
-  - Its new bullets (no duplicated business logic, no one-off utilities) went into `CLAUDE.md`.
+- We first kept the TypeScript rules in `CLAUDE.md`, because `src/**/*.ts` matches most coding
+  tasks. We then moved them verbatim to `typescript.md` (commit `7b9d4c8`): `CLAUDE.md` loads in
+  every session, but these rules only matter when editing `src/**/*.ts`. No rule was removed,
+  and each still lives in one place.
 - We considered Vitest for unit tests and kept `node:test`: it needs no dependency and already
   runs in CI. Changing the runner needs its own ADR.
 - We considered Playwright for this project's own tests and rejected it: Playwright is for
@@ -76,8 +78,10 @@
 ## Consequences
 
 - Rule violations fail at edit time, at commit, and in CI, with a message pointing to the rule.
-- Detailed testing and AI rules reach the model when it works on those files, without growing
-  every task's context.
+- Detailed TypeScript, testing and AI rules reach the model when it works on those files,
+  without growing every session's context.
+- Path-scoped rules load only once a matching file is opened. Planning done before opening any
+  file can miss them; ESLint and `tsc` still catch most TypeScript rules at edit time.
 - Tiers 2 and 3 are guidance only. Judgment rules, like no business logic in route handlers, can
   still be broken without a failing check.
 - A rule must live in one place. Copying it into both `CLAUDE.md` and a rules file lets them
