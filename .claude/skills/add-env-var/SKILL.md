@@ -20,9 +20,9 @@ questions:
 - **Required, or optional with a default.** Secrets are never given defaults.
 - **Secret or not:** API keys, tokens, passwords and connection strings with credentials are
   secrets.
-- **Needed in CI?** Only if a workflow step runs code that reads it. `src/config.ts` validates
-  at import time, so it matters for steps that start the app, run tests that import config,
-  or deploy. Typecheck, lint and build don't read it.
+- **Needed in CI?** Only if a workflow step runs code that reads it. `loadConfig()` in
+  `src/config.ts` validates when the app starts, so it matters for steps that start the app, run
+  tests that call `loadConfig()`, or deploy. Typecheck, lint and build don't read it.
 
 ## 2. `.env.example`
 
@@ -39,7 +39,7 @@ value: this file is committed. For non-secrets, use a value that works for local
 
 ## 3. The zod schema in `src/config.ts`
 
-Add the field to `envSchema`. Every value in `process.env` is a string, so pick a schema that
+Add the field to the schema in `createEnvSchema()`. Every value in `process.env` is a string, so pick a schema that
 parses strings correctly:
 
 | Type     | Schema                                                                          |
@@ -51,7 +51,9 @@ parses strings correctly:
 | URL      | `z.url()`                                                                       |
 | optional | append `.default(<value>)`, or `.optional()` if there's no sensible default     |
 
-Code reads it as `config.NAME`. It's typed from the schema, so nothing else needs declaring.
+Code reads it as `config.NAME` from the `Config` that `loadConfig()` returns. `src/index.ts`
+loads it once and passes it (or just the values needed) to other functions as parameters. It's
+typed from the schema, so nothing else needs declaring.
 Don't read `process.env.NAME` anywhere else.
 
 ## 4. Workflows (only if CI needs it)
@@ -80,8 +82,8 @@ If CI doesn't need it, skip this step and say so in the report.
 
 1. `npm run typecheck` and `npm run lint` pass.
 2. **Required variable:** start the app once (not in watch mode, e.g.
-   `npm run build && npm start`) without it, and confirm the startup error names it. `config.ts` loads `.env`
-   itself, so `env -u NAME` isn't enough when `.env` defines it. Move `.env` aside
+   `npm run build && npm start`) without it, and confirm the startup error names it. `loadConfig()` loads
+   `.env` itself, so `env -u NAME` isn't enough when `.env` defines it. Move `.env` aside
    (`mv .env .env.bak`) for the run and restore it afterwards.
 3. **Default value:** confirm the app starts without it, the same way.
 4. Don't edit the user's own `.env`. Tell them to add the variable there.

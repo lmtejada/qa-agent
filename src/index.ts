@@ -1,40 +1,40 @@
-// Entry point: the only file that runs code on load. It wires the pieces together
-// (config, model, terminal) and handles everything the user sees.
 import { stdin, stdout } from "node:process";
 
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-
-import { config } from "#/config.js";
+import { loadConfig } from "#/config.js";
+import { createModel } from "#/model.js";
 import { generateTestCases } from "#/test-cases.js";
 import { readUserStory } from "#/user-input.js";
 
-async function main(): Promise<void> {
-  // The provider is the bridge between the AI SDK and Google's Gemini API.
-  const google = createGoogleGenerativeAI({ apiKey: config.GOOGLE_GENERATIVE_AI_API_KEY });
-  const model = google(config.GEMINI_MODEL);
+import type { LanguageModelUsage } from "ai";
+
+function formatUsage(usage: LanguageModelUsage): string {
+  return `(tokens: ${usage.inputTokens ?? "?"} in, ${usage.outputTokens ?? "?"} out)`;
+}
+
+async function run(): Promise<void> {
+  const config = loadConfig();
+  const model = createModel(config);
 
   console.log(`${config.APP_NAME} (model: ${config.GEMINI_MODEL})\n`);
   console.log("Enter a user story. Press Enter on an empty line to finish:\n");
 
   const userStory = await readUserStory(stdin, stdout);
-  if (userStory === "") {
-    console.error("No user story entered. Nothing to do.");
-    process.exitCode = 1;
-    return;
-  }
+  if (userStory === "") throw new Error("No user story entered. Nothing to do.");
 
   console.log("\nGenerating test cases...");
   const { text, usage } = await generateTestCases(userStory, model);
 
-  // Tokens are the units the model reads and writes (roughly ¾ of a word). They drive cost.
-  console.log(`(tokens: ${usage.inputTokens ?? "?"} in, ${usage.outputTokens ?? "?"} out)\n`);
+  console.log(`${formatUsage(usage)}\n`);
   console.log(text);
 }
 
-try {
-  await main();
-} catch (error) {
-  // Network problems, an invalid API key or an unknown model name all end up here.
-  console.error("Failed to generate test cases:", error instanceof Error ? error.message : error);
-  process.exitCode = 1;
+async function main(): Promise<void> {
+  try {
+    await run();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  }
 }
+
+await main();
