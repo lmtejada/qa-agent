@@ -259,48 +259,42 @@ reuse it unchanged:
 - No magic numbers or strings: give them a named `UPPER_SNAKE_CASE` constant.
 - `===` only, and don't reassign parameters (enforced).
 - Validate external data at runtime with zod.
+- Keep side effects (I/O, network, clock, randomness) at the boundaries; business logic stays
+  pure.
+- Avoid duplicated business logic: put a rule in one place and call it.
+- Don't create utility functions without a second real caller; a one-off helper belongs next to
+  its only use.
 
 ## AI engineering standards
+
+Core principles, which apply to all code. The detailed rules for code that calls models or
+runs agents (`src/ai/`, `src/workflows/`) are in `.claude/rules/ai-engineering.md`.
 
 - Never assume LLM output is correct. Treat model output as untrusted input: validate structured
   output with zod before using it.
 - Never execute generated code automatically, and never `eval` model output.
-- Keep prompts versionable and maintainable: each capability's prompt lives in
-  `src/ai/prompts/<capability>.ts` as an exported `UPPER_SNAKE_CASE` instructions constant and a
-  `build...Prompt()` function that wraps the input. Review prompt changes like code changes.
+- Keep prompts separate from application code, version-controlled, in `src/ai/prompts/`.
 - Code depends on the AI SDK's `LanguageModel` type, never on a specific provider. Only
   `<provider>-client.ts` files import a provider package (`@ai-sdk/google`, ...), and only the
   entry points decide which client to use. To add a provider, add its client file and its env
   vars; capability code doesn't change.
-- Handle API failures, timeouts and rate limits: set a timeout on model calls and turn provider
-  errors into `Result` errors with stable codes.
-- Make AI operations observable: record the model ID, latency, token usage and outcome of each
-  call (without prompt contents that may hold sensitive data).
-- Treat user input as untrusted: wrap it in clear delimiters in the prompt, and remind the model
-  that it's data, not instructions (prompt injection).
+- Handle model failures, timeouts and rate limits, and make AI operations observable.
+- Treat user input and external documents as untrusted data, not instructions (prompt
+  injection).
 - Require human approval for destructive operations.
-- Tools for the agent (AI SDK `tool()`): one clear job each, a description that says what it
-  does and when to use it, a strict zod `inputSchema` with `.describe()` on fields, concise
-  structured results, and errors returned as data. Read-only by default; anything that writes
-  or calls external systems needs user approval. Cap agent loops with `stopWhen`.
-- Use a plain function (workflow) when the steps are fixed; use tools only when the model must
-  decide what to do next.
 
 ## Testing standards
 
-- Tests live next to the code: `<file>.test.ts`, using `node:test` and `node:assert/strict`. They
-  run from `src/` with tsx and are excluded from the build.
-- Write unit tests for business logic. New or changed behavior comes with tests.
-- Test positive, negative and boundary scenarios, and failure conditions (each `Result` error
-  code), not only the happy path.
-- Avoid unnecessary mocks. Test pure logic directly; use fakes only at real boundaries, passed in
-  as dependencies: `MockLanguageModelV4` from `ai/test` for models, a fake `fetch` or a fake
-  client object for integrations. Unit tests never call real external services.
-- Test external integrations separately from business logic: a client's tests cover its request
-  building, response validation and error mapping against a fake `fetch`.
+These apply to every code change. How to write the tests themselves (tools, structure, fakes,
+determinism) is in `.claude/rules/testing.md`.
+
+- Write unit tests for business logic. New or changed behavior comes with tests in
+  `<file>.test.ts` next to the code (`node:test`, run with `npm test`).
+- Test positive, negative and boundary scenarios, and failure conditions, not only the happy
+  path.
+- Every bug fix includes a regression test that fails without the fix.
 - Never modify a test just to make incorrect application behavior pass. Fix the code, or explain
   why the test's expectation was wrong.
-- Every bug fix includes a regression test that fails without the fix.
 
 ## Security
 
@@ -345,6 +339,17 @@ reuse it unchanged:
   `Format and Type Check` (the `main` ruleset requires a check with that exact name).
 - `.nvmrc` / `engines` / the `@types/node` major (keep all three on the same Node major), or adding new dependencies (especially runtime ones, or `dotenv`).
 - `LICENSE`.
+
+## Path-scoped rules
+
+`.claude/rules/` holds detailed rules that Claude Code loads when working on matching files:
+
+- `testing.md` (`src/**/*.test.ts`): test tools, structure, determinism, fakes.
+- `ai-engineering.md` (`src/ai/**`, `src/workflows/**`): structured output, prompts, retries and
+  timeouts, agents and tools, observability.
+
+Keep each rule in one place: a rule lives either here in `CLAUDE.md` or in a rules file, never
+both.
 
 ## Project skills
 
