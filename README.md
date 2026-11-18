@@ -52,10 +52,10 @@ Ctrl+C (or `SIGTERM`) stops accepting new requests and lets running ones finish.
 
 | Script                 | What it does                                                    |
 | ---------------------- | --------------------------------------------------------------- |
-| `npm run dev`          | Runs `src/index.ts` with tsx and restarts on changes            |
+| `npm run dev`          | Runs `src/cli/index.ts` with tsx and restarts on changes        |
 | `npm run build`        | Compiles `src/` to `dist/` with `tsc`                           |
 | `npm start`            | Runs the compiled terminal app from `dist/` (run `build` first) |
-| `npm run dev:server`   | Runs `src/server.ts` with tsx and restarts on changes           |
+| `npm run dev:server`   | Runs `src/server/index.ts` with tsx and restarts on changes     |
 | `npm run serve`        | Runs the compiled HTTP server from `dist/` (run `build` first)  |
 | `npm run typecheck`    | Type-checks `src/` and the config files without emitting        |
 | `npm run lint`         | Runs ESLint (type-aware)                                        |
@@ -67,7 +67,7 @@ Ctrl+C (or `SIGTERM`) stops accepting new requests and lets running ones finish.
 ## Environment variables
 
 Every variable is listed and explained in [`.env.example`](.env.example), and validated at
-startup by `loadConfig()` in [`src/config.ts`](src/config.ts).
+startup by `loadConfig()` in [`src/shared/config.ts`](src/shared/config.ts).
 
 ## Folder structure
 
@@ -82,15 +82,22 @@ startup by `loadConfig()` in [`src/config.ts`](src/config.ts).
 │   └── SECURITY.md
 ├── .husky/                  # pre-commit, commit-msg, pre-push hooks
 ├── docs/adr/                # Architecture decision records (start from `0. template.md`)
+├── prompts/
+│   └── test-generation.md   # Instructions for the test-case generator (sent verbatim)
 ├── src/
-│   ├── config.ts            # loadConfig(): loads and validates env vars (zod)
-│   ├── errors.ts            # getErrorMessage(): readable message from any thrown value
-│   ├── http-handler.ts      # createRequestHandler(model): routes, validation, JSON responses
-│   ├── index.ts             # Entry point: terminal loop
-│   ├── model.ts             # createModel(config): the Gemini model
-│   ├── server.ts            # Entry point: HTTP server
-│   ├── test-cases.ts        # Prompt + model call (AI SDK `generateText`), no I/O
-│   └── user-input.ts        # Reads the next multi-line user story from a line iterator
+│   ├── ai/                  # Everything that calls a model
+│   │   ├── model.ts         # createModel(config): the Gemini model
+│   │   ├── prompts.ts       # loadPrompt(name): reads prompts/<name>.md
+│   │   └── test-generator.ts # generateTestCases(story, model)
+│   ├── cli/                 # Terminal interface
+│   │   ├── index.ts         # Entry point: terminal loop
+│   │   └── user-input.ts    # Reads the next multi-line user story
+│   ├── server/              # HTTP interface
+│   │   ├── http-handler.ts  # Routes, request validation, JSON responses
+│   │   └── index.ts         # Entry point: HTTP server
+│   └── shared/
+│       ├── config.ts        # loadConfig(): loads and validates env vars (zod)
+│       └── errors.ts        # getErrorMessage()
 ├── .env.example             # Every env variable, documented
 ├── eslint.config.ts
 ├── tsconfig.json            # Type-checking (editor, ESLint, `typecheck`)
@@ -100,20 +107,25 @@ startup by `loadConfig()` in [`src/config.ts`](src/config.ts).
 ## Conventions
 
 - **ES modules** throughout (`"type": "module"`). Imports of project files use `.js`
-  extensions (`#/config.js` for `config.ts`), as Node requires for compiled ESM.
+  extensions (`#/shared/config.js` for `config.ts`), as Node requires for compiled ESM.
 - **No relative imports:** import project files through the `#/` alias only. ESLint
   (`no-restricted-imports`) rejects `./` and `../` paths.
-- **Path alias:** `#/*` maps to `src/*` (e.g. `import { loadConfig } from "#/config.js"`), using
+- **Path alias:** `#/*` maps to `src/*` (e.g. `import { loadConfig } from "#/shared/config.js"`), using
   Node's native [subpath imports](https://nodejs.org/api/packages.html#subpath-imports) in
   `package.json` — no build-time rewriting. A custom `template-source` condition points TypeScript,
   ESLint and tsx at `src/`; plain `node` resolves the same import to `dist/`. (`@/` isn't
   possible natively: Node requires subpath imports to start with `#`.)
 - **No code in a file's body:** files export only functions or constant data, and all logic
-  lives inside functions. The only exceptions are the entry points, `src/index.ts` and `src/server.ts`,
+  lives inside functions. The only exceptions are the entry points, `src/cli/index.ts` and `src/server/index.ts`,
   whose last line calls `main()`.
   Functions receive their dependencies (the model, config, streams) as parameters and return
   results instead of printing them. See `CLAUDE.md` for the full code rules.
-- **Config:** read env vars only through `loadConfig()` from `src/config.ts`. Add new variables with
+- **Folders by capability:** `ai/`, `cli/`, `server/`, `shared/`, and later `integrations/`,
+  `validation/`, `automation/`, `reporting/`. New folders are added with the feature that needs
+  them. `CLAUDE.md` describes what goes where.
+- **Prompts** live in `prompts/*.md` and are loaded at runtime, so they can be read and reviewed
+  as plain text. Prettier ignores them because they're sent to the model verbatim.
+- **Config:** read env vars only through `loadConfig()` from `src/shared/config.ts`. Add new variables with
   the `add-env-var` skill, which updates the zod schema and `.env.example`. `.env` is loaded with Node's built-in
   `process.loadEnvFile()` — no dotenv.
 

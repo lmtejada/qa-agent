@@ -39,9 +39,9 @@ Read `git diff origin/main...HEAD` in full, not just the stat. Look for:
 - **Project conventions** (CLAUDE.md):
   - imports through `#/` only, with `.js` extensions
   - `import type` for types
-  - env vars read only through `loadConfig()` from `src/config.ts`, and passed on as parameters
+  - env vars read only through `loadConfig()` from `src/shared/config.ts`, and passed on as parameters
 - **Things that must change together:**
-  - **New or changed env var:** `.env.example` and `src/config.ts` (the
+  - **New or changed env var:** `.env.example` and `src/shared/config.ts` (the
     `add-env-var` skill does all of them).
   - **New or renamed script:** the README scripts table and CLAUDE.md.
   - **Renamed CI job:** the `main` ruleset's required check.

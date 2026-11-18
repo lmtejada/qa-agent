@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { getErrorMessage } from "#/errors.js";
-import { generateTestCases } from "#/test-cases.js";
+import { generateTestCases } from "#/ai/test-generator.js";
+import { getErrorMessage } from "#/shared/errors.js";
 
 import type { LanguageModel } from "ai";
 import type { IncomingMessage, RequestListener, ServerResponse } from "node:http";

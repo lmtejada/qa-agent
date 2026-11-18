@@ -1,11 +1,11 @@
 import { stdin, stdout } from "node:process";
 import { createInterface } from "node:readline/promises";
 
-import { loadConfig } from "#/config.js";
-import { getErrorMessage } from "#/errors.js";
-import { createModel } from "#/model.js";
-import { generateTestCases } from "#/test-cases.js";
-import { readUserStory } from "#/user-input.js";
+import { createModel } from "#/ai/model.js";
+import { generateTestCases } from "#/ai/test-generator.js";
+import { readUserStory } from "#/cli/user-input.js";
+import { loadConfig } from "#/shared/config.js";
+import { getErrorMessage } from "#/shared/errors.js";
 
 import type { LanguageModel, LanguageModelUsage } from "ai";
 

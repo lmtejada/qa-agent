@@ -1,6 +1,6 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
-import type { Config } from "#/config.js";
+import type { Config } from "#/shared/config.js";
 
 import type { LanguageModel } from "ai";
 

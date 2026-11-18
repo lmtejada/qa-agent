@@ -1,9 +1,9 @@
 import { createServer } from "node:http";
 
-import { loadConfig } from "#/config.js";
-import { getErrorMessage } from "#/errors.js";
-import { createRequestHandler } from "#/http-handler.js";
-import { createModel } from "#/model.js";
+import { createModel } from "#/ai/model.js";
+import { createRequestHandler } from "#/server/http-handler.js";
+import { loadConfig } from "#/shared/config.js";
+import { getErrorMessage } from "#/shared/errors.js";
 
 import type { Server } from "node:http";
 

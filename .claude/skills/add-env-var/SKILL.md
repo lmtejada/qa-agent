@@ -1,6 +1,6 @@
 ---
 name: add-env-var
-description: Add (or rename or remove) an environment variable in this project and keep all the places that must agree in sync — `.env.example`, the zod schema in `src/config.ts`, GitHub Actions `env:` blocks, and repo secrets or variables. Use this whenever the user wants a new env var, config value, API key, secret, token, feature flag, port, URL, or setting read from the environment, or wants to rename or delete one — even if they just say "the app needs a DATABASE_URL" or "make the timeout configurable".
+description: Add (or rename or remove) an environment variable in this project and keep all the places that must agree in sync — `.env.example`, the zod schema in `src/shared/config.ts`, GitHub Actions `env:` blocks, and repo secrets or variables. Use this whenever the user wants a new env var, config value, API key, secret, token, feature flag, port, URL, or setting read from the environment, or wants to rename or delete one — even if they just say "the app needs a DATABASE_URL" or "make the timeout configurable".
 ---
 
 # Add an environment variable
@@ -14,14 +14,14 @@ end with a verification and a short report of each place.
 Ask for anything the user didn't say. Suggest sensible answers rather than asking open
 questions:
 
-- **Name:** `UPPER_SNAKE_CASE`. Check that it's not already in `src/config.ts`.
+- **Name:** `UPPER_SNAKE_CASE`. Check that it's not already in `src/shared/config.ts`.
 - **Purpose:** one line. It becomes the comment in `.env.example`.
 - **Type:** string, number, boolean, enum (list the values), or URL.
 - **Required, or optional with a default.** Secrets are never given defaults.
 - **Secret or not:** API keys, tokens, passwords and connection strings with credentials are
   secrets.
 - **Needed in CI?** Only if a workflow step runs code that reads it. `loadConfig()` in
-  `src/config.ts` validates when the app starts, so it matters for steps that start the app, run
+  `src/shared/config.ts` validates when the app starts, so it matters for steps that start the app, run
   tests that call `loadConfig()`, or deploy. Typecheck, lint and build don't read it.
 
 ## 2. `.env.example`
@@ -37,7 +37,7 @@ NAME=<placeholder>
 For a secret, use an obviously fake placeholder (`NAME=` or `NAME=replace-me`) and never a real
 value: this file is committed. For non-secrets, use a value that works for local development.
 
-## 3. The zod schema in `src/config.ts`
+## 3. The zod schema in `src/shared/config.ts`
 
 Add the field to the schema in `createEnvSchema()`. Every value in `process.env` is a string, so pick a schema that
 parses strings correctly:
@@ -51,8 +51,8 @@ parses strings correctly:
 | URL      | `z.url()`                                                                       |
 | optional | append `.default(<value>)`, or `.optional()` if there's no sensible default     |
 
-Code reads it as `config.NAME` from the `Config` that `loadConfig()` returns. `src/index.ts`
-loads it once and passes it (or just the values needed) to other functions as parameters. It's
+Code reads it as `config.NAME` from the `Config` that `loadConfig()` returns. `src/cli/index.ts` and
+`src/server/index.ts` load it once and pass it (or just the values needed) to other functions as parameters. It's
 typed from the schema, so nothing else needs declaring.
 Don't read `process.env.NAME` anywhere else.
 

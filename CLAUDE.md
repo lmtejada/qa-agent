@@ -5,9 +5,8 @@ Guidance for Claude (and other AI assistants) working in this repository.
 ## Project
 
 QA agent: takes a user story and asks Gemini (Vercel AI SDK, `ai` + `@ai-sdk/google`) for test
-cases. The prompt and model call live in `src/test-cases.ts`. Two entry points share that logic:
-`src/index.ts` (terminal loop) and `src/server.ts` (HTTP server, handler in
-`src/http-handler.ts`).
+cases. Two entry points share the same logic: a terminal loop (`src/cli/`) and an HTTP server
+(`src/server/`).
 
 TypeScript/Node.js project. Node runs the compiled output: `src/` → `tsc` → `dist/`.
 Node version is pinned in `.nvmrc` (24 LTS) and enforced via `engines` + `engine-strict`.
@@ -24,6 +23,26 @@ npm run lint:fix    # auto-fix lint issues
 npm run format      # auto-format
 ```
 
+## Folder structure
+
+Group code by capability. Put new code in the folder that matches what it does, and create a
+folder only in the change that first needs it (no empty placeholder folders).
+
+| Folder              | What goes there                                                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/cli/`          | Terminal interface. `index.ts` is an entry point.                                                                                                      |
+| `src/server/`       | HTTP interface: routing, request validation, responses. `index.ts` is an entry point.                                                                  |
+| `src/ai/`           | Everything that calls a model: model creation, prompt loading, one file per AI capability (`test-generator.ts`, later `requirement-analyser.ts`, ...). |
+| `src/shared/`       | Code used by several folders: config, error helpers.                                                                                                   |
+| `src/validation/`   | zod schemas for data that crosses a boundary (model output, API input).                                                                                |
+| `src/integrations/` | One subfolder per external system (`jira/`, `zephyr/`): API client + mappers.                                                                          |
+| `src/automation/`   | Running generated tests (e.g. Playwright).                                                                                                             |
+| `src/reporting/`    | Building reports from results.                                                                                                                         |
+| `prompts/`          | Prompts as Markdown, one file per capability, loaded with `loadPrompt()`.                                                                              |
+
+Interfaces (`cli/`, `server/`) may import from any folder; `ai/`, `integrations/` and the
+others must not import from `cli/` or `server/`.
+
 ## Code structure (mandatory)
 
 - **No code in a file's body.** All logic lives inside functions. At the top level, a file may
@@ -31,10 +50,10 @@ npm run format      # auto-format
 - **Every `.ts`/`.js` file exports only functions or data** (constants and types). No classes,
   no mutable exported state, no exported objects that are computed when the file loads.
 - **Constant data means literals:** strings, numbers, arrays and plain objects written out in
-  the source (`const MAX_TEST_CASES = 10`, `const INSTRUCTIONS = "..."`). If a value needs a
+  the source (`const MAX_TEST_CASES = 10`, `const EXIT_COMMAND = "exit"`). If a value needs a
   function call to produce (reading env vars, creating a client, parsing), put it behind a
   function (`loadConfig()`, `createModel(config)`).
-- **The only exceptions** are the entry points `src/index.ts` and `src/server.ts`, whose last
+- **The only exceptions** are the entry points `src/cli/index.ts` and `src/server/index.ts`, whose last
   line calls `main()`. Nothing else runs at the top level, so importing any other file never
   has side effects.
 - **Separate logic from I/O.** Only the entry points read from the terminal, start servers,
@@ -45,7 +64,7 @@ npm run format      # auto-format
   importing or creating them inside the function. This keeps functions testable with fakes
   (e.g. the AI SDK's `MockLanguageModelV4` from `ai/test`).
 - **One responsibility per function and per file.** Name files after what they do, in
-  kebab-case (`user-input.ts`, `test-cases.ts`).
+  kebab-case (`user-input.ts`, `test-generator.ts`).
 
 ## Comments
 
@@ -73,8 +92,9 @@ npm run format      # auto-format
 
 ## LLM and agent practices
 
-- Prompts (instructions) are exported string constants in the module that uses them, so they're
-  easy to find, review and test.
+- Prompts (instructions) live in `prompts/<capability>.md` and are loaded with `loadPrompt()`
+  from `src/ai/prompts.ts` (add the name to `PromptName`). They're sent to the model verbatim,
+  so Prettier ignores `prompts/`. Review prompt changes like code changes.
 - Treat everything the model returns as untrusted input: validate structured output with zod
   before using it, and never execute or `eval` it.
 - Treat the user's input as untrusted too: wrap it in clear delimiters in the prompt, and
@@ -90,9 +110,9 @@ npm run format      # auto-format
 ## Conventions
 
 - ESM only. Imports of project files **must** end in `.js` (`#/foo.js`), even though the file is `foo.ts`.
-- Import from `src/` only via the `#/` alias (`#/config.js`, defined in `package.json` `"imports"`). Relative imports (`./`, `../`) are rejected by ESLint.
+- Import from `src/` only via the `#/` alias (`#/shared/config.js`, defined in `package.json` `"imports"`). Relative imports (`./`, `../`) are rejected by ESLint.
 - Use `import type` for type-only imports (`verbatimModuleSyntax` is on).
-- Read env vars only through `src/config.ts`; never use `process.env` elsewhere.
+- Read env vars only through `src/shared/config.ts`; never use `process.env` elsewhere.
   New variables go in the zod schema and `.env.example`: use the `add-env-var` skill.
 - Import order is enforced by `import-x/order`: builtins, external, `#/` internal, then `import type`.
 - Commits and PR titles follow Conventional Commits (`feat: ...`, `fix(scope): ...`).

@@ -38,7 +38,7 @@ export default defineConfig(
           patterns: [
             {
               regex: "^\\.{1,2}(/|$)",
-              message: "Use the `#/` alias instead of a relative path (e.g. `#/config.js`).",
+              message: "Use the `#/` alias instead of a relative path (e.g. `#/shared/config.js`).",
             },
           ],
         },
