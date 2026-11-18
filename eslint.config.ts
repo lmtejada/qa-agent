@@ -7,12 +7,14 @@ import { configs as tseslint } from "typescript-eslint";
 import type { Linter } from "eslint";
 
 // Architecture layers (see CLAUDE.md "Architecture"). Dependencies point inwards:
-// interfaces -> workflows -> capabilities -> foundation. Folders may not exist yet.
+// interfaces -> workflows -> capabilities -> validation -> shared -> constants/types.
+// Folders may not exist yet.
 const INTERFACES = ["./src/cli", "./src/server"];
 const WORKFLOWS = ["./src/workflows"];
 const CAPABILITIES = ["./src/ai", "./src/integrations", "./src/automation", "./src/reporting"];
 const VALIDATION = ["./src/validation"];
 const SHARED = ["./src/shared"];
+const DEFINITIONS = ["./src/constants", "./src/types"];
 
 const LAYER_ZONES = [
   {
@@ -38,7 +40,16 @@ const LAYER_ZONES = [
     from: CAPABILITIES,
     message: "validation/ and shared/ are foundations; they must not depend on capabilities.",
   },
-  { target: SHARED, from: VALIDATION, message: "shared/ must not depend on other folders." },
+  {
+    target: SHARED,
+    from: VALIDATION,
+    message: "shared/ may only import from constants/ and types/.",
+  },
+  {
+    target: DEFINITIONS,
+    from: [...INTERFACES, ...WORKFLOWS, ...CAPABILITIES, ...VALIDATION, ...SHARED],
+    message: "constants/ and types/ are the base layer: they may only import from each other.",
+  },
 ];
 
 const NO_CLASSES = {

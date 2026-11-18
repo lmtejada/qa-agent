@@ -99,10 +99,12 @@ startup by `loadConfig()` in [`src/shared/config.ts`](src/shared/config.ts).
 │   ├── server/              # HTTP interface
 │   │   ├── http-handler.ts  # Routes, request validation, JSON responses
 │   │   └── index.ts         # Entry point: HTTP server
-│   └── shared/
-│       ├── config.ts        # loadConfig(): loads and validates env vars (zod)
-│       ├── errors.ts        # getErrorMessage()
-│       └── result.ts        # Result<T>, ok(), err() for expected failures
+│   ├── shared/
+│   │   ├── config.ts        # loadConfig(): loads and validates env vars (zod)
+│   │   ├── errors.ts        # getErrorMessage()
+│   │   └── result.ts        # ok() and err() helpers for Result
+│   └── types/
+│       └── result.ts        # Result<T> and AppError for expected failures
 ├── .env.example             # Every env variable, documented
 ├── eslint.config.ts
 ├── tsconfig.json            # Type-checking (editor, ESLint, `typecheck`)
@@ -126,7 +128,7 @@ startup by `loadConfig()` in [`src/shared/config.ts`](src/shared/config.ts).
   Functions receive their dependencies (the model, config, streams) as parameters and return
   results instead of printing them. See `CLAUDE.md` for the full code rules.
 - **Layered architecture:** interfaces (`cli/`, `server/`) → workflows → capabilities (`ai/`,
-  `integrations/`, ...) → foundation (`validation/`, `shared/`). ESLint rejects imports against
+  `integrations/`, ...) → foundation (`validation/`, `shared/`, `constants/`, `types/`). ESLint rejects imports against
   that direction, classes, top-level code, and oversized functions. `CLAUDE.md` describes the
   architecture, the client pattern, dependency injection, errors and testing rules, and
   ADR 0002 explains why.

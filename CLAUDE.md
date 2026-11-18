@@ -133,13 +133,18 @@ workflows    workflows/                       combine capabilities into use case
     │
 capabilities ai/  integrations/  automation/  reporting/   independent of each other
     │
-foundation   validation/  →  shared/          schemas; config, constants, errors, Result
+foundation   validation/  →  shared/          schemas; config, error and Result helpers
+    │
+definitions  constants/  types/               shared constants and types; import nothing else
 ```
 
 - Interfaces never import each other, and nothing imports an interface.
 - Capabilities never import each other. When a feature needs two of them (fetch a Jira story,
   then generate tests), write a workflow in `src/workflows/` that receives both as dependencies.
-- `shared/` imports nothing from `src/`. `validation/` may import only `shared/`.
+- `validation/` may import `shared/`, `constants/` and `types/`. `shared/` may import only
+  `constants/` and `types/`.
+- `constants/` and `types/` may import only each other, so anything can use them without
+  creating a cycle.
 
 ### Folders
 
@@ -156,7 +161,9 @@ first needs it (no empty placeholder folders).
 | `src/automation/`   | Running generated tests (e.g. Playwright).                                                                                                                          |
 | `src/reporting/`    | Building reports from results.                                                                                                                                      |
 | `src/validation/`   | zod schemas for data that crosses a boundary (model output, API input), with types inferred from them.                                                              |
-| `src/shared/`       | Code every layer may use: `config.ts`, `constants.ts`, `errors.ts`, `result.ts`.                                                                                    |
+| `src/shared/`       | Code every layer may use: `config.ts`, `errors.ts`, `result.ts` (`ok()`/`err()` helpers).                                                                           |
+| `src/constants/`    | Constants used by more than one folder: one file per module or concept (`http.ts`), later `<module>/` subfolders. Created with the first shared constant.           |
+| `src/types/`        | Hand-written types used by more than one folder: `result.ts` today, one file per module or concept, later `<module>/` subfolders.                                   |
 
 ### Dependency injection and the composition root
 
@@ -189,16 +196,23 @@ reuse it unchanged:
 
 - **Values that may change per environment** (limits, timeouts, URLs, model IDs) are config: add
   them to the schema in `src/shared/config.ts` and `.env.example` with the `add-env-var` skill.
-- **Constants used by more than one folder** go in `src/shared/constants.ts`.
-- **Constants used by one module** stay in that module, as `UPPER_SNAKE_CASE`.
-- **Types of data that crosses a boundary** (API bodies, model output, external payloads) are
-  zod schemas in `src/validation/` (or the client's `schemas.ts`), with `type X = z.infer<...>`.
-  Other types live next to the code that owns them.
+- **Constants used by more than one folder** go in `src/constants/`, one file per module or
+  concept (`src/constants/http.ts`). When a module's file grows, split it into
+  `src/constants/<module>/`.
+- **Constants used by one module** stay in that module, as `UPPER_SNAKE_CASE`. Move one to
+  `src/constants/` when a second folder needs it.
+- **Hand-written types used by more than one folder** go in `src/types/`, organized the same way
+  (`src/types/result.ts`, later `src/types/<module>/`).
+- **Types used by one module** stay next to the code that owns them (`TestCasesResult` in
+  `src/ai/test-generator.ts`).
+- **Types inferred from a zod schema** stay next to their schema, so the schema is the single
+  source of truth: `type Config = z.infer<...>` in `src/shared/config.ts`; API bodies and model
+  output in `src/validation/`; external payloads in the client's `schemas.ts`.
 
 ### Errors
 
-- Handle errors explicitly. Expected failures return `Result<T>` from `src/shared/result.ts`
-  (`ok(value)`, `err({ code, message })`). Use a `switch` on `error.code` to handle them;
+- Handle errors explicitly. Expected failures return `Result<T>` (type in `src/types/result.ts`),
+  built with `ok(value)` and `err({ code, message })` from `src/shared/result.ts`. Use a `switch` on `error.code` to handle them;
   `switch-exhaustiveness-check` flags missing cases on unions.
 - Unexpected failures (bugs, broken invariants) throw. Only the entry points and the server's
   error handler catch them, log them, and turn them into a generic message.

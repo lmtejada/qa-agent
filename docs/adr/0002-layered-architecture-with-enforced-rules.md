@@ -18,7 +18,8 @@
 
 - We will organize `src/` in layers with one-way dependencies: interfaces (`cli/`, `server/`) →
   `workflows/` → capabilities (`ai/`, `integrations/`, `automation/`, `reporting/`) →
-  `validation/` → `shared/`. Capabilities don't import each other; workflows combine them.
+  `validation/` → `shared/` → `constants/` and `types/`. Capabilities don't import each other;
+  workflows combine them.
 - We will keep modules function-only: no classes, no code in a file's body, and no values
   computed at load time. Entry points end with `await main();`.
 - We will inject dependencies from the entry points (the composition root), as parameters or a
@@ -26,7 +27,8 @@
 - We will build external clients as `create<System>Client(options)` returning a function-typed
   object. They get config through `options`, validate responses with zod, and return `Result`
   for expected failures.
-- We will return `Result<T>` (`src/shared/result.ts`) for expected failures and throw only for
+- We will return `Result<T>` (`src/types/result.ts`, built with `ok()`/`err()` from
+  `src/shared/result.ts`) for expected failures and throw only for
   bugs, caught at the entry points or by the server's error handler.
 - We will put every rule in exactly one of three tiers, the strongest that can express it:
   1. **Enforced by tools.** Violations fail the edit hook, the commit or CI.
@@ -63,9 +65,13 @@
 - We considered Playwright for this project's own tests and rejected it: Playwright is for
   `src/automation/` (running generated tests against applications under test). Our HTTP
   endpoints are tested with Fastify's `app.inject()`.
+- We will keep constants and types used by more than one folder in dedicated `src/constants/`
+  and `src/types/` folders, one file per module or concept, split into `<module>/` subfolders as
+  they grow. Single-use ones stay in their module; zod-inferred types stay with their schema.
 - We considered one central constants file and rejected it because it turns into a dumping
-  ground. Config holds per-environment values, `shared/constants.ts` cross-folder ones, and
-  modules keep their own.
+  ground. Per-module files in `src/constants/` keep each file small and owned.
+- We considered moving every constant and type there, including single-use ones, and rejected
+  it: it separates them from the only code that uses them, for no reuse benefit.
 
 ## Consequences
 
