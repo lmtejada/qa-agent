@@ -2,6 +2,10 @@
 
 CLI QA agent that turns user stories into test cases using Gemini.
 
+You type a user story in the terminal, and the agent sends it to Gemini (through the
+[Vercel AI SDK](https://ai-sdk.dev/)) and prints up to 10 test cases: positive, negative,
+edge-case and security scenarios.
+
 Node runs the compiled output (`tsc` → `dist/`).
 
 ## Prerequisites
@@ -14,9 +18,12 @@ Node runs the compiled output (`tsc` → `dist/`).
 ```sh
 nvm use
 npm ci
-cp .env.example .env
-npm run dev
+cp .env.example .env   # then set GOOGLE_GENERATIVE_AI_API_KEY
+npm run build
+npm start
 ```
+
+Get a free API key at [Google AI Studio](https://aistudio.google.com/apikey).
 
 ## Scripts
 
@@ -52,7 +59,8 @@ startup by [`src/config.ts`](src/config.ts).
 ├── docs/adr/                # Architecture decision records (start from `0. template.md`)
 ├── src/
 │   ├── config.ts            # Loads and validates env vars (zod), exports `config`
-│   └── index.ts             # Entry point
+│   ├── index.ts             # Entry point: reads the user story, prints the test cases
+│   └── test-cases.ts        # Prompt + Gemini call (AI SDK `generateText`)
 ├── .env.example             # Every env variable, documented
 ├── eslint.config.ts
 ├── tsconfig.json            # Type-checking (editor, ESLint, `typecheck`)
