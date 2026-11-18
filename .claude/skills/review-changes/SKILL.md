@@ -30,6 +30,7 @@ it in the finding instead.
   judge it: its callers, the types it uses, the tests next to it.
 - The standards are the reference. Read them before judging, and cite the rule a finding breaks:
   - `CLAUDE.md`, always.
+  - `.claude/rules/typescript.md` when TypeScript in `src/` changed.
   - `.claude/rules/testing.md` when tests changed or should have.
   - `.claude/rules/ai-engineering.md` when `src/ai/` or `src/workflows/` changed.
   - The ADRs in `docs/adr/` that the change touches.

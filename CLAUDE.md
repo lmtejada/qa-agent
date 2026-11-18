@@ -219,51 +219,12 @@ reuse it unchanged:
   `setErrorHandler` that logs unexpected errors and returns a generic 500.
 - Validate request bodies at the boundary, with size limits (`bodyLimit`).
 
-## Code structure (enforced by ESLint)
+## TypeScript
 
-- **No code in a file's body.** At the top level, a file may only contain imports, types,
-  function declarations, and `const` literal data. The only exception is the entry points
-  (`src/cli/index.ts`, `src/server/index.ts`), whose last line is `await main();`. Test files
-  may call `test()`/`describe()` at the top level.
-- **Files export only functions or data** (constants and types). No classes, no `let`/`var` at
-  the top level, no values computed when the file loads: if it needs a function call (reading
-  env vars, creating a client, `z.object(...)`), put it behind a function.
-- **Separate logic from I/O.** `console` is allowed only in `src/cli/` and `src/server/`. Other
-  code returns values or `Result`s; it doesn't print or call `process.exit`.
-- **Small, focused functions:** at most 50 lines, 3 parameters, nesting depth 3, cyclomatic
-  complexity 10. Split the function rather than raising a limit.
-- **One responsibility per file.** Name files after what they do, in kebab-case
-  (`user-input.ts`, `test-generator.ts`).
-- **Packages stay in their layer:**
-  - `@ai-sdk/*` provider packages only in `src/ai/*-client.ts`.
-  - Runtime imports from `ai` (`generateText`, ...) only in `src/ai/` and tests; elsewhere,
-    `import type` only.
-  - `fastify`, `@fastify/*` and `node:http(s)` only in `src/server/`.
-- **`process.env`** only in `src/shared/config.ts`; **`process.exit`** only in the entry points.
-
-## TypeScript standards
-
-- Strict TypeScript is on (`tsconfig.json`); don't weaken it.
-- Never use `any` unless explicitly justified in a comment on the same line (ESLint flags it).
-  Use `unknown` for untrusted data and narrow it.
-- No non-null assertions (`value!`); narrow with a check instead (enforced).
-- Prefer `const`, immutable data, and pure functions (same input, same output, no side effects).
-- Use `async`/`await`; never leave a promise un-awaited (enforced).
-- Handle errors explicitly (see [Errors](#errors)).
-- Use descriptive names: functions are verbs in camelCase (`generateTestCases`), constants are
-  `UPPER_SNAKE_CASE`, types are `PascalCase`.
-- Named exports only; no `export default` (enforced).
-- Explicit return types on exported functions (enforced).
-- `type`, not `interface`, for object types (enforced).
-- Keep functions focused and small; prefer early returns over nested `if`/`else`.
-- No magic numbers or strings: give them a named `UPPER_SNAKE_CASE` constant.
-- `===` only, and don't reassign parameters (enforced).
-- Validate external data at runtime with zod.
-- Keep side effects (I/O, network, clock, randomness) at the boundaries; business logic stays
-  pure.
-- Avoid duplicated business logic: put a rule in one place and call it.
-- Don't create utility functions without a second real caller; a one-off helper belongs next to
-  its only use.
+Module structure, imports, types and style rules for `src/` are in `.claude/rules/typescript.md`
+(loaded when working on `src/**/*.ts`). Most of them are enforced by ESLint and `tsc`. In short:
+strict types with no `any` or `!`, function-only modules with no top-level code, small functions,
+named exports, `#/` imports ending in `.js`, and side effects kept at the boundaries.
 
 ## AI engineering standards
 
@@ -318,12 +279,6 @@ determinism) is in `.claude/rules/testing.md`.
 
 ## Conventions
 
-- ESM only. Imports of project files **must** end in `.js` (`#/foo.js`), even though the file is `foo.ts`.
-- Import from `src/` only via the `#/` alias (`#/shared/config.js`, defined in `package.json` `"imports"`). Relative imports (`./`, `../`) are rejected by ESLint.
-- Use `import type` for type-only imports (`verbatimModuleSyntax` is on).
-- Read env vars only through `src/shared/config.ts`; `process.env` elsewhere is rejected by
-  ESLint. New variables go in the zod schema and `.env.example`: use the `add-env-var` skill.
-- Import order is enforced by `import-x/order`: builtins, external, `#/` internal, then `import type`.
 - Commits and PR titles follow Conventional Commits (`feat: ...`, `fix(scope): ...`).
 - Tooling goes in `devDependencies`. Keep runtime dependencies minimal.
 - Use `npm` (lockfile is `package-lock.json`). No `npx` inside npm scripts.
@@ -344,6 +299,7 @@ determinism) is in `.claude/rules/testing.md`.
 
 `.claude/rules/` holds detailed rules that Claude Code loads when working on matching files:
 
+- `typescript.md` (`src/**/*.ts`): module structure, imports, types, style.
 - `testing.md` (`src/**/*.test.ts`): test tools, structure, determinism, fakes.
 - `ai-engineering.md` (`src/ai/**`, `src/workflows/**`): structured output, prompts, retries and
   timeouts, agents and tools, observability.
