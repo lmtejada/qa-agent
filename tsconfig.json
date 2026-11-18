@@ -17,9 +17,11 @@
     // Type-only imports must use `import type`, so emitted JS matches the source 1:1.
     "verbatimModuleSyntax": true,
 
-    // `#/x` is a Node subpath import (package.json "imports"): the "source" condition points
+    // `#/x` is a Node subpath import (package.json "imports"): the "template-source" condition points
     // at src/ for TypeScript, ESLint and tsx; plain `node` falls through to dist/.
-    "customConditions": ["source"],
+    // Not plain "source": some dependencies (e.g. eventsource-parser, used by the AI SDK)
+    // publish a "source" condition pointing at raw .ts files, which TypeScript would then check.
+    "customConditions": ["template-source"],
 
     "skipLibCheck": true,
     "noEmit": true

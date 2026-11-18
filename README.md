@@ -67,7 +67,7 @@ startup by [`src/config.ts`](src/config.ts).
   (`no-restricted-imports`) rejects `./` and `../` paths.
 - **Path alias:** `#/*` maps to `src/*` (e.g. `import { config } from "#/config.js"`), using
   Node's native [subpath imports](https://nodejs.org/api/packages.html#subpath-imports) in
-  `package.json` — no build-time rewriting. A custom `source` condition points TypeScript,
+  `package.json` — no build-time rewriting. A custom `template-source` condition points TypeScript,
   ESLint and tsx at `src/`; plain `node` resolves the same import to `dist/`. (`@/` isn't
   possible natively: Node requires subpath imports to start with `#`.)
 - **Config:** read env vars only through `config` from `src/config.ts`. Add new variables with
