@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 
-import { createModel } from "#/ai/model.js";
+import { createGeminiModel } from "#/ai/gemini-client.js";
 import { createRequestHandler } from "#/server/http-handler.js";
 import { loadConfig } from "#/shared/config.js";
 import { getErrorMessage } from "#/shared/errors.js";
@@ -27,7 +27,10 @@ function closeOnSignals(server: Server): void {
 
 async function run(): Promise<void> {
   const config = loadConfig();
-  const model = createModel(config);
+  const model = createGeminiModel({
+    apiKey: config.GOOGLE_GENERATIVE_AI_API_KEY,
+    modelId: config.GEMINI_MODEL,
+  });
   const server = createServer(createRequestHandler(model));
 
   await listen(server, config.PORT, config.HOST);

@@ -2,6 +2,3 @@
 dist/
 coverage/
 package-lock.json
-
-# Sent to the model verbatim; reformatting would change the prompt
-prompts/

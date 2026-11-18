@@ -82,12 +82,11 @@ startup by `loadConfig()` in [`src/shared/config.ts`](src/shared/config.ts).
 │   └── SECURITY.md
 ├── .husky/                  # pre-commit, commit-msg, pre-push hooks
 ├── docs/adr/                # Architecture decision records (start from `0. template.md`)
-├── prompts/
-│   └── test-generation.md   # Instructions for the test-case generator (sent verbatim)
 ├── src/
 │   ├── ai/                  # Everything that calls a model
-│   │   ├── model.ts         # createModel(config): the Gemini model
-│   │   ├── prompts.ts       # loadPrompt(name): reads prompts/<name>.md
+│   │   ├── gemini-client.ts # createGeminiModel(): the Gemini model
+│   │   ├── prompts/
+│   │   │   └── test-generation.ts # Instructions + user-message builder
 │   │   └── test-generator.ts # generateTestCases(story, model)
 │   ├── cli/                 # Terminal interface
 │   │   ├── index.ts         # Entry point: terminal loop
@@ -123,8 +122,10 @@ startup by `loadConfig()` in [`src/shared/config.ts`](src/shared/config.ts).
 - **Folders by capability:** `ai/`, `cli/`, `server/`, `shared/`, and later `integrations/`,
   `validation/`, `automation/`, `reporting/`. New folders are added with the feature that needs
   them. `CLAUDE.md` describes what goes where.
-- **Prompts** live in `prompts/*.md` and are loaded at runtime, so they can be read and reviewed
-  as plain text. Prettier ignores them because they're sent to the model verbatim.
+- **AI providers:** one `<provider>-client.ts` per provider in `src/ai/` (only Gemini for now).
+  The rest of the code works with the AI SDK's `LanguageModel` type, so adding a provider
+  doesn't change capability code.
+- **Prompts** live in `src/ai/prompts/`, one file per capability.
 - **Config:** read env vars only through `loadConfig()` from `src/shared/config.ts`. Add new variables with
   the `add-env-var` skill, which updates the zod schema and `.env.example`. `.env` is loaded with Node's built-in
   `process.loadEnvFile()` — no dotenv.

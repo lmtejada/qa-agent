@@ -1,6 +1,9 @@
 import { generateText } from "ai";
 
-import { loadPrompt } from "#/ai/prompts.js";
+import {
+  TEST_GENERATION_INSTRUCTIONS,
+  buildTestGenerationPrompt,
+} from "#/ai/prompts/test-generation.js";
 
 import type { LanguageModel, LanguageModelUsage } from "ai";
 
@@ -9,19 +12,14 @@ export type TestCasesResult = {
   usage: LanguageModelUsage;
 };
 
-// The """ delimiters mark where the untrusted story starts and ends (see the prompt's rules).
-export function buildPrompt(userStory: string): string {
-  return `Write test cases for this user story:\n"""\n${userStory}\n"""`;
-}
-
 export async function generateTestCases(
   userStory: string,
   model: LanguageModel,
 ): Promise<TestCasesResult> {
   const result = await generateText({
     model,
-    instructions: await loadPrompt("test-generation"),
-    prompt: buildPrompt(userStory),
+    instructions: TEST_GENERATION_INSTRUCTIONS,
+    prompt: buildTestGenerationPrompt(userStory),
   });
 
   return { text: result.text, usage: result.usage };

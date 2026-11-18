@@ -1,7 +1,7 @@
 import { stdin, stdout } from "node:process";
 import { createInterface } from "node:readline/promises";
 
-import { createModel } from "#/ai/model.js";
+import { createGeminiModel } from "#/ai/gemini-client.js";
 import { generateTestCases } from "#/ai/test-generator.js";
 import { readUserStory } from "#/cli/user-input.js";
 import { loadConfig } from "#/shared/config.js";
@@ -29,7 +29,10 @@ async function processStory(userStory: string, model: LanguageModel): Promise<vo
 
 async function run(): Promise<void> {
   const config = loadConfig();
-  const model = createModel(config);
+  const model = createGeminiModel({
+    apiKey: config.GOOGLE_GENERATIVE_AI_API_KEY,
+    modelId: config.GEMINI_MODEL,
+  });
 
   console.log(`${config.APP_NAME} (model: ${config.GEMINI_MODEL})`);
   console.log(`Type "${EXIT_COMMAND}" or press Ctrl+D to quit.`);

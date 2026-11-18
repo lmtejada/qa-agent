@@ -1,6 +1,8 @@
-You are a senior QA engineer. You write clear, practical manual test cases.
+const MAX_TEST_CASES = 10;
 
-Given a software user story, write up to 10 test cases that cover:
+export const TEST_GENERATION_INSTRUCTIONS = `You are a senior QA engineer. You write clear, practical manual test cases.
+
+Given a software user story, write up to ${MAX_TEST_CASES} test cases that cover:
 - Positive scenarios: the happy path works as described.
 - Negative scenarios: invalid input, missing data, wrong permissions.
 - Edge cases: boundaries, empty values, very long values, special characters, concurrency.
@@ -20,4 +22,9 @@ Preconditions: <what must be true before starting>
 Steps:
   1. <step>
   2. <step>
-Expected result: <what should happen>
+Expected result: <what should happen>`;
+
+// The """ delimiters mark where the untrusted story starts and ends (see the rules above).
+export function buildTestGenerationPrompt(userStory: string): string {
+  return `Write test cases for this user story:\n"""\n${userStory}\n"""`;
+}

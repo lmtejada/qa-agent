@@ -28,17 +28,16 @@ npm run format      # auto-format
 Group code by capability. Put new code in the folder that matches what it does, and create a
 folder only in the change that first needs it (no empty placeholder folders).
 
-| Folder              | What goes there                                                                                                                                        |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/cli/`          | Terminal interface. `index.ts` is an entry point.                                                                                                      |
-| `src/server/`       | HTTP interface: routing, request validation, responses. `index.ts` is an entry point.                                                                  |
-| `src/ai/`           | Everything that calls a model: model creation, prompt loading, one file per AI capability (`test-generator.ts`, later `requirement-analyser.ts`, ...). |
-| `src/shared/`       | Code used by several folders: config, error helpers.                                                                                                   |
-| `src/validation/`   | zod schemas for data that crosses a boundary (model output, API input).                                                                                |
-| `src/integrations/` | One subfolder per external system (`jira/`, `zephyr/`): API client + mappers.                                                                          |
-| `src/automation/`   | Running generated tests (e.g. Playwright).                                                                                                             |
-| `src/reporting/`    | Building reports from results.                                                                                                                         |
-| `prompts/`          | Prompts as Markdown, one file per capability, loaded with `loadPrompt()`.                                                                              |
+| Folder              | What goes there                                                                                                                                                                                                                                                                          |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/cli/`          | Terminal interface. `index.ts` is an entry point.                                                                                                                                                                                                                                        |
+| `src/server/`       | HTTP interface: routing, request validation, responses. `index.ts` is an entry point.                                                                                                                                                                                                    |
+| `src/ai/`           | Everything that calls a model. `<provider>-client.ts` creates a model for one provider (`gemini-client.ts`, later `claude-client.ts`); one file per AI capability (`test-generator.ts`, later `requirement-analyser.ts`, ...); `prompts/<capability>.ts` holds that capability's prompt. |
+| `src/shared/`       | Code used by several folders: config, error helpers.                                                                                                                                                                                                                                     |
+| `src/validation/`   | zod schemas for data that crosses a boundary (model output, API input).                                                                                                                                                                                                                  |
+| `src/integrations/` | One subfolder per external system (`jira/`, `zephyr/`): API client + mappers.                                                                                                                                                                                                            |
+| `src/automation/`   | Running generated tests (e.g. Playwright).                                                                                                                                                                                                                                               |
+| `src/reporting/`    | Building reports from results.                                                                                                                                                                                                                                                           |
 
 Interfaces (`cli/`, `server/`) may import from any folder; `ai/`, `integrations/` and the
 others must not import from `cli/` or `server/`.
@@ -52,7 +51,7 @@ others must not import from `cli/` or `server/`.
 - **Constant data means literals:** strings, numbers, arrays and plain objects written out in
   the source (`const MAX_TEST_CASES = 10`, `const EXIT_COMMAND = "exit"`). If a value needs a
   function call to produce (reading env vars, creating a client, parsing), put it behind a
-  function (`loadConfig()`, `createModel(config)`).
+  function (`loadConfig()`, `createGeminiModel(options)`).
 - **The only exceptions** are the entry points `src/cli/index.ts` and `src/server/index.ts`, whose last
   line calls `main()`. Nothing else runs at the top level, so importing any other file never
   has side effects.
@@ -92,9 +91,13 @@ others must not import from `cli/` or `server/`.
 
 ## LLM and agent practices
 
-- Prompts (instructions) live in `prompts/<capability>.md` and are loaded with `loadPrompt()`
-  from `src/ai/prompts.ts` (add the name to `PromptName`). They're sent to the model verbatim,
-  so Prettier ignores `prompts/`. Review prompt changes like code changes.
+- Each capability's prompt lives in `src/ai/prompts/<capability>.ts`: the instructions as an
+  exported `UPPER_SNAKE_CASE` string constant, and a `build...Prompt()` function that wraps the
+  user's input. Review prompt changes like code changes.
+- Code depends on the AI SDK's `LanguageModel` type, never on a specific provider. Only
+  `<provider>-client.ts` files import a provider package (`@ai-sdk/google`, ...), and only the
+  entry points decide which client to use. To add a provider, add its client file and its env
+  vars; capability code doesn't change.
 - Treat everything the model returns as untrusted input: validate structured output with zod
   before using it, and never execute or `eval` it.
 - Treat the user's input as untrusted too: wrap it in clear delimiters in the prompt, and
